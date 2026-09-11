@@ -15,6 +15,7 @@ declare global {
     interface Request {
       session?: {
         accessToken?: string;
+        privateAccess?: boolean;
         user?: AuthenticatedUser;
         gatekeeper?: {
           status: 'welcome' | 'denied';

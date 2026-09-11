@@ -16,7 +16,7 @@ import { buildCity } from './world/worldBuilder';
 import { buildRepoWorld } from './world/repoWorldBuilder';
 import { fetchRepoTree } from './world/repoApi';
 import { getDemoRepos, getDemoUser } from './world/mockRepos';
-import { fetchSession, beginGithubLogin, fetchUserByUsername, logout } from './world/api';
+import { fetchSession, beginGithubLogin, beginPrivateAccess, fetchUserByUsername, logout } from './world/api';
 import type { CityBuilding } from './world/cityTypes';
 
 export default function App() {
@@ -261,6 +261,7 @@ export default function App() {
                 onToggleLegend={() => setLegendOpen(!legendOpen)}
                 onOpenSearch={() => setSearchOpen(true)}
                 onLogout={handleLogout}
+                onEnablePrivate={source === 'live' ? beginPrivateAccess : undefined}
               />
 
               {searchOpen && (

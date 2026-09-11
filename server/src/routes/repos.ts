@@ -18,7 +18,9 @@ reposRouter.get('/', requireAuth, async (req: Request, res: Response) => {
       const normalized = RepositoryNormalizer.normalizeAll(rawRepos);
       return res.json(normalized);
     }
-    const rawRepos = await GitHubService.fetchUserRepos(accessToken);
+    const rawRepos = req.session?.privateAccess
+      ? await GitHubService.fetchUserRepos(accessToken)
+      : await GitHubService.fetchPublicUserRepos(req.session!.user!.username);
     const normalized = RepositoryNormalizer.normalizeAll(rawRepos);
     return res.json(normalized);
   } catch (error: any) {
@@ -44,6 +46,12 @@ reposRouter.post('/', async (req: Request, res: Response) => {
   if (!repoNameRegex.test(trimmedName)) {
     return res.status(400).json({
       error: 'Invalid repository name. Names can only contain letters, numbers, hyphens, periods, and underscores.',
+    });
+  }
+
+  if (isPrivate === true && !req.session?.privateAccess) {
+    return res.status(400).json({
+      error: 'Private repositories are not supported. GitWorld only works with public repositories.',
     });
   }
 
@@ -85,7 +93,7 @@ reposRouter.post('/', async (req: Request, res: Response) => {
     const rawRepo = await GitHubService.createRepo(accessToken, {
       name: trimmedName,
       description,
-      private: isPrivate,
+      private: isPrivate === true,
       auto_init: autoInit ?? true,
       gitignore_template: gitignoreTemplate,
       license_template: licenseTemplate,

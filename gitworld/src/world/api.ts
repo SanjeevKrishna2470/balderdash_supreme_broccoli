@@ -8,10 +8,12 @@ export interface LiveSession {
   avatarUrl: string;
   htmlUrl: string;
   repos: RepositoryModel[];
+  privateAccess?: boolean;
 }
 
 interface MeResponse {
   isAuthenticated: boolean;
+  privateAccess?: boolean;
   user: {
     id: number;
     username: string;
@@ -43,11 +45,16 @@ export async function fetchSession(): Promise<LiveSession | null> {
     avatarUrl: me.user.avatarUrl,
     htmlUrl: me.user.htmlUrl ?? `https://github.com/${me.user.username}`,
     repos,
+    privateAccess: me.privateAccess === true,
   };
 }
 
 export function beginGithubLogin() {
   window.location.href = `${API_BASE}/api/auth/github`;
+}
+
+export function beginPrivateAccess() {
+  window.location.href = `${API_BASE}/api/auth/github/private`;
 }
 
 export function beginMockLogin() {
@@ -308,4 +315,3 @@ export async function fetchPublicWorldManifests(): Promise<PublicWorldManifest[]
     },
   ];
 }
-

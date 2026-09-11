@@ -18,12 +18,30 @@ authRouter.get('/github', (req: Request, res: Response) => {
   const params = new URLSearchParams({
     client_id: config.github.clientId,
     redirect_uri: config.github.callbackUrl,
-    scope: 'read:user repo',
+    // Public profile + public repository access only; no private-repository scope.
+    scope: 'read:user public_repo',
     allow_signup: 'true'
   });
 
   const authUrl = `${config.github.authorizeUrl}?${params.toString()}`;
   return res.redirect(authUrl);
+});
+
+/** Explicit opt-in for users who want private repositories included. */
+authRouter.get('/github/private', (req: Request, res: Response) => {
+  if (!config.github.clientId) {
+    return res.status(500).json({ error: 'GITHUB_CLIENT_ID is not configured' });
+  }
+
+  const params = new URLSearchParams({
+    client_id: config.github.clientId,
+    redirect_uri: config.github.callbackUrl,
+    scope: 'read:user repo',
+    state: 'private',
+    allow_signup: 'true'
+  });
+
+  return res.redirect(`${config.github.authorizeUrl}?${params.toString()}`);
 });
 
 /**
@@ -95,6 +113,7 @@ authRouter.get('/callback', async (req: Request, res: Response) => {
         status: 'welcome',
         dialogue: `The ancient archway pulses with azure light! Grimwald lowers his halberd: "Welcome, lord ${ghUser.login}! The chronicles acknowledge your deeds. Enter your domain."`
       };
+      if (req.query.state === 'private') req.session.privateAccess = true;
     }
 
     // 4. Redirect user back to the frontend game landing page
@@ -127,14 +146,16 @@ authRouter.get('/me', (req: Request, res: Response) => {
     return res.json({
       isAuthenticated: false,
       user: null,
-      gatekeeper
+      gatekeeper,
+      privateAccess: false
     });
   }
 
   return res.json({
     isAuthenticated: true,
     user,
-    gatekeeper
+    gatekeeper,
+    privateAccess: req.session?.privateAccess === true
   });
 });
 

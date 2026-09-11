@@ -10,9 +10,10 @@ interface Props {
   onToggleLegend: () => void;
   onOpenSearch: () => void;
   onLogout?: () => void;
+  onEnablePrivate?: () => void;
 }
 
-export function TopBar({ user, source, hoveredName, legendOpen, onToggleLegend, onOpenSearch, onLogout }: Props) {
+export function TopBar({ user, source, hoveredName, legendOpen, onToggleLegend, onOpenSearch, onLogout, onEnablePrivate }: Props) {
   return (
     <div className="topbar">
       <div className="topbar-row">
@@ -43,6 +44,12 @@ export function TopBar({ user, source, hoveredName, legendOpen, onToggleLegend, 
             <img src={user.avatarUrl} alt="" className="topbar-avatar" />
             <span className="topbar-name">{user.displayName}</span>
           </a>
+
+          {onEnablePrivate && source === 'live' && (
+            <button className="topbar-btn" onClick={onEnablePrivate} title="Allow GitWorld to include private repositories">
+              Private repos
+            </button>
+          )}
 
           {onLogout && (
             <button className="topbar-btn topbar-btn--logout" onClick={onLogout} title="Log out / Leave realm">
@@ -108,4 +115,3 @@ function LogoutIcon() {
     </svg>
   );
 }
-
