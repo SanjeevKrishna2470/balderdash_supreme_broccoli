@@ -44,3 +44,35 @@ worldRouter.get('/', requireAuth, async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * Public Realm Endpoint: GET /api/world/:username
+ * Allows visiting ANY public developer's generated world without logging in!
+ */
+worldRouter.get('/:username', async (req: Request, res: Response) => {
+  const { username } = req.params;
+
+  try {
+    const ghUser = await GitHubService.fetchPublicUser(username);
+    const rawRepos = await GitHubService.fetchPublicUserRepos(username);
+    const normalizedRepos = RepositoryNormalizer.normalizeAll(rawRepos);
+
+    const userObj = {
+      id: ghUser.id,
+      username: ghUser.login,
+      displayName: ghUser.name || ghUser.login,
+      avatarUrl: ghUser.avatar_url,
+      htmlUrl: ghUser.html_url,
+      publicRepos: ghUser.public_repos
+    };
+
+    const worldModel = WorldGenerator.generate(userObj, normalizedRepos);
+    return res.json(worldModel);
+  } catch (error: any) {
+    console.error(`Failed to generate public realm for ${username}:`, error?.message || error);
+    return res.status(404).json({
+      error: `Could not forge realm for user '${username}'`,
+      message: error?.message || 'User not found'
+    });
+  }
+});

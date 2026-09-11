@@ -117,3 +117,94 @@ export interface WorldModel {
   };
   buildings: BuildingModel[];
 }
+
+/**
+ * File & Folder Entry for Repository Inspector
+ */
+export interface FileEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+  size: number;
+  downloadUrl?: string;
+}
+
+/**
+ * File Content Response
+ */
+export interface FileContent {
+  name: string;
+  path: string;
+  size: number;
+  content: string; // Decoded UTF-8 content
+  isBinary: boolean;
+  language?: string;
+}
+
+/**
+ * Repository Commit Item
+ */
+export interface RepoCommit {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+  htmlUrl: string;
+}
+
+/**
+ * Developer RPG Profile & Stats
+ */
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+}
+
+export interface UserProfile {
+  user: {
+    username: string;
+    displayName: string;
+    avatarUrl: string;
+    htmlUrl: string;
+    publicRepos: number;
+  };
+  rpg: {
+    title: string;          // e.g. "Archmage of the TypeScript Citadel"
+    level: number;
+    primaryElement: string; // e.g. "TypeScript", "Python"
+    realmPower: number;     // calculated score from stars, forks, repos
+  };
+  stats: {
+    totalStars: number;
+    totalForks: number;
+    totalOpenIssues: number;
+    languageBreakdown: { language: string; percentage: number; color: string }[];
+  };
+  achievements: Achievement[];
+}
+
+/**
+ * In-game Settings & Preferences
+ */
+export interface UserSettings {
+  audio: {
+    bgmVolume: number; // 0 - 100
+    sfxVolume: number; // 0 - 100
+    muted: boolean;
+  };
+  graphics: {
+    retroFilter: boolean;
+    showGrid: boolean;
+    showMinimap: boolean;
+    tileSize: number;
+  };
+  gameplay: {
+    controls: 'WASD' | 'Arrows';
+    movementSpeed: 'normal' | 'fast';
+  };
+  theme: 'fantasy' | 'cyberpunk' | 'retro';
+}
+
