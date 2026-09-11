@@ -26,12 +26,12 @@ interface MeResponse {
 
 /** Checks whether an authenticated GitHub session already exists server-side. */
 export async function fetchSession(): Promise<LiveSession | null> {
-  const meRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+  const meRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
   if (!meRes.ok) return null;
   const me: MeResponse = await meRes.json();
   if (!me.isAuthenticated || !me.user) return null;
 
-  const reposRes = await fetch(`${API_BASE}/api/repos`, { credentials: 'include' });
+  const reposRes = await fetch(`${API_BASE}/api/repos`, { credentials: 'include', cache: 'no-store' });
   if (reposRes.status === 401) return null; // session expired between the two calls
   if (!reposRes.ok) {
     const body = await reposRes.json().catch(() => null);

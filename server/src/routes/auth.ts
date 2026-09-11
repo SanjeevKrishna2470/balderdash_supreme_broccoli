@@ -136,6 +136,11 @@ authRouter.get('/callback', async (req: Request, res: Response) => {
  * Returns the current authenticated user and gatekeeper state
  */
 authRouter.get('/me', (req: Request, res: Response) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0'
+  });
   const user = req.session?.user;
   const gatekeeper = req.session?.gatekeeper || {
     status: 'denied',
