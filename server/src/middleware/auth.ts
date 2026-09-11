@@ -8,6 +8,7 @@ export interface AuthenticatedUser {
   htmlUrl: string;
   publicRepos: number;
 }
+
 // Extend Request to include typed session
 declare global {
   namespace Express {
@@ -19,6 +20,7 @@ declare global {
           status: 'welcome' | 'denied';
           dialogue: string;
         };
+        settings?: any;
         [key: string]: any;
       } | null;
     }

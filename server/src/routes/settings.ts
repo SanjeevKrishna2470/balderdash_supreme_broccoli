@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { UserSettings } from '../../../types';
+import { UserSettings } from '../types';
 
 export const settingsRouter = Router();
 

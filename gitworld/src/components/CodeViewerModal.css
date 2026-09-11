@@ -1,0 +1,437 @@
+/* ============================================================
+   GitWorld In-Website Code Viewer Modal
+   Adheres to the deep-dusk editorial aesthetic: ink/violet ground,
+   warm ivory typography, teal accents, and parchment accents.
+   ============================================================ */
+
+.codeviewer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(8, 7, 16, 0.72);
+  backdrop-filter: blur(8px);
+  animation: cv-scrim-fade var(--dur-fast) var(--ease-panel);
+}
+
+@keyframes cv-scrim-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.codeviewer-container {
+  position: fixed;
+  inset: 0;
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  pointer-events: none;
+}
+
+.codeviewer-modal {
+  pointer-events: auto;
+  position: relative;
+  width: min(1140px, 94vw);
+  height: min(800px, 90vh);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #18162d 0%, #121124 100%);
+  border: 1px solid rgba(167, 163, 196, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 32px 80px -20px rgba(4, 3, 10, 0.85), 0 0 0 1px rgba(89, 173, 162, 0.12);
+  overflow: hidden;
+  animation: cv-modal-scale var(--dur-med) var(--ease-panel);
+}
+
+@keyframes cv-modal-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* --- Top Header --- */
+.codeviewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(23, 22, 43, 0.95);
+  border-bottom: 1px solid rgba(167, 163, 196, 0.14);
+  gap: var(--space-3);
+  min-height: 56px;
+}
+
+.codeviewer-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+}
+
+.codeviewer-repo-badge {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ivory);
+  letter-spacing: 0.2px;
+}
+
+.codeviewer-sep {
+  color: var(--faint);
+  font-weight: 300;
+}
+
+.codeviewer-path {
+  color: var(--warm-white);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.codeviewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.codeviewer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(167, 163, 196, 0.1);
+  color: var(--cool-gray);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  border: 1px solid rgba(167, 163, 196, 0.14);
+}
+
+.codeviewer-lang-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.codeviewer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(167, 163, 196, 0.1);
+  color: var(--warm-white);
+  border: 1px solid rgba(167, 163, 196, 0.18);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all var(--dur-fast);
+}
+
+.codeviewer-btn:hover {
+  background: rgba(89, 173, 162, 0.15);
+  border-color: rgba(89, 173, 162, 0.4);
+  color: var(--ivory);
+}
+
+.codeviewer-btn--copied {
+  background: rgba(89, 173, 162, 0.25);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.codeviewer-close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(14, 13, 24, 0.4);
+  color: var(--warm-white);
+  border: 1px solid rgba(167, 163, 196, 0.12);
+  transition: all var(--dur-fast);
+}
+
+.codeviewer-close-btn:hover {
+  background: rgba(217, 128, 95, 0.2);
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+/* --- Main Layout: Sidebar & Content --- */
+.codeviewer-workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* --- Left File Tree Sidebar --- */
+.codeviewer-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background: rgba(18, 17, 33, 0.96);
+  border-right: 1px solid rgba(167, 163, 196, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width var(--dur-med) var(--ease-panel);
+}
+
+.codeviewer-sidebar--collapsed {
+  width: 0;
+  border-right: none;
+}
+
+.codeviewer-sidebar-header {
+  padding: var(--space-3) var(--space-4);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--faint);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(167, 163, 196, 0.08);
+}
+
+.codeviewer-file-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+  list-style: none;
+  margin: 0;
+}
+
+.codeviewer-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--space-4);
+  font-size: 12.5px;
+  color: var(--cool-gray);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+
+.codeviewer-file-item:hover {
+  background: rgba(167, 163, 196, 0.06);
+  color: var(--warm-white);
+}
+
+.codeviewer-file-item--active {
+  background: rgba(89, 173, 162, 0.12);
+  color: var(--teal);
+  border-left-color: var(--teal);
+  font-weight: 500;
+}
+
+.codeviewer-file-icon {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.codeviewer-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Code Area --- */
+.codeviewer-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0f0e1b;
+  position: relative;
+}
+
+.codeviewer-editor {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: var(--space-4) 0;
+  color: var(--warm-white);
+}
+
+.codeviewer-gutters {
+  user-select: none;
+  text-align: right;
+  padding: 0 var(--space-3);
+  color: var(--faint);
+  opacity: 0.65;
+  border-right: 1px solid rgba(167, 163, 196, 0.1);
+  min-width: 48px;
+  flex-shrink: 0;
+}
+
+.codeviewer-gutter-line {
+  height: 20.8px;
+  display: block;
+}
+
+.codeviewer-code-lines {
+  flex: 1;
+  padding-left: var(--space-4);
+  padding-right: var(--space-5);
+  min-width: max-content;
+}
+
+.codeviewer-code-line {
+  height: 20.8px;
+  white-space: pre;
+}
+
+/* --- Syntax Tokens --- */
+.hl-keyword {
+  color: #e58f70; /* warm coral */
+  font-weight: 500;
+}
+
+.hl-string {
+  color: #8bbfa3; /* sage moss */
+}
+
+.hl-number {
+  color: #6fc4b8; /* bright teal */
+}
+
+.hl-type {
+  color: #e8bd77; /* amber gold */
+}
+
+.hl-function {
+  color: #b1a9e8; /* soft lavender */
+}
+
+.hl-ident {
+  color: var(--warm-white);
+}
+
+.hl-punct {
+  color: #928fb3; /* muted violet */
+}
+
+.hl-comment {
+  color: #68648e; /* dusky faint */
+  font-style: italic;
+}
+
+.hl-literal {
+  color: #6fc4b8;
+  font-weight: 600;
+}
+
+/* --- Status / Loading / Empty States --- */
+.codeviewer-loading,
+.codeviewer-error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--cool-gray);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.codeviewer-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(167, 163, 196, 0.15);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: cv-spin 0.8s linear infinite;
+}
+
+@keyframes cv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.codeviewer-status-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ivory);
+  margin: 0;
+}
+
+.codeviewer-status-sub {
+  font-size: 13px;
+  color: var(--cool-gray);
+  max-width: 380px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* --- Bottom Toolbar --- */
+.codeviewer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px var(--space-4);
+  background: rgba(18, 17, 33, 0.95);
+  border-top: 1px solid rgba(167, 163, 196, 0.1);
+  font-size: 11.5px;
+  color: var(--cool-gray);
+}
+
+.codeviewer-footer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.codeviewer-sidebar-toggle {
+  background: transparent;
+  border: none;
+  color: var(--cool-gray);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-fast);
+}
+
+.codeviewer-sidebar-toggle:hover {
+  color: var(--teal);
+}
+
+@media (max-width: 768px) {
+  .codeviewer-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .codeviewer-breadcrumbs {
+    font-size: 12px;
+  }
+
+  .codeviewer-badge {
+    display: none;
+  }
+}

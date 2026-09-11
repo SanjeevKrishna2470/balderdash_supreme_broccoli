@@ -5,6 +5,10 @@ import { RepositoryNormalizer } from '../services/normalizer';
 import { WorldGenerator } from '../services/worldGenerator';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const worldRouter = Router();
 
@@ -17,13 +21,17 @@ worldRouter.get('/', requireAuth, async (req: Request, res: Response) => {
   const accessToken = req.session!.accessToken!;
 
   try {
-    // If running in dev/mock login mode, serve the static mock_world.json
+    // If running in dev/mock login mode, serve the static mock_world.json if present
     if (accessToken === 'mock_dev_token') {
       const mockPath = path.resolve(__dirname, '../../../mock_world.json');
       if (fs.existsSync(mockPath)) {
         const mockData = JSON.parse(fs.readFileSync(mockPath, 'utf8'));
         return res.json(mockData);
       }
+      const rawRepos = await GitHubService.fetchPublicUserRepos('octocat');
+      const normalizedRepos = RepositoryNormalizer.normalizeAll(rawRepos);
+      const worldModel = WorldGenerator.generate(user, normalizedRepos);
+      return res.json(worldModel);
     }
 
     // 1. Fetch raw repositories from GitHub API (cached & rate-limit handled)
@@ -42,6 +50,19 @@ worldRouter.get('/', requireAuth, async (req: Request, res: Response) => {
       error: 'Failed to generate world from GitHub data',
       message: error?.message || 'Internal Server Error'
     });
+  }
+});
+
+/**
+ * GET /api/world/public-manifests
+ * Returns sanitized public world manifests for community exploration (AGENT.md Section 7)
+ */
+worldRouter.get('/public-manifests', async (_req: Request, res: Response) => {
+  try {
+    const manifests = GitHubService.getPublicManifests();
+    return res.json(manifests);
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to fetch public manifests', message: error.message });
   }
 });
 

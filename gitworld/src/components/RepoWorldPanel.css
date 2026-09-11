@@ -1,0 +1,224 @@
+.repoworldpanel-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-panel);
+  background: rgba(8, 7, 16, 0.32);
+  backdrop-filter: blur(3px);
+  animation: rwp-scrim-in var(--dur-med) var(--ease-panel);
+}
+
+@keyframes rwp-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.repoworldpanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-panel);
+  width: min(360px, 92vw);
+  background: linear-gradient(180deg, #1a1830 0%, #15132a 100%);
+  border-left: 1px solid rgba(167, 163, 196, 0.14);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: rwp-panel-in var(--dur-med) var(--ease-panel);
+}
+
+@keyframes rwp-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.repoworldpanel-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(14, 13, 24, 0.4);
+  color: var(--warm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.repoworldpanel-close:hover {
+  background: rgba(14, 13, 24, 0.65);
+}
+
+.repoworldpanel-header {
+  padding: var(--space-7) var(--space-5) var(--space-5);
+  position: relative;
+}
+
+.repoworldpanel-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 13, 24, 0) 0%, rgba(14, 13, 24, 0.55) 100%);
+}
+
+.repoworldpanel-path,
+.repoworldpanel-name,
+.repoworldpanel-badge {
+  position: relative;
+}
+
+.repoworldpanel-path {
+  display: block;
+  font-size: 12px;
+  color: rgba(241, 234, 217, 0.7);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.repoworldpanel-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--ivory);
+  margin: 0 0 var(--space-3);
+  word-break: break-word;
+}
+
+.repoworldpanel-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0e0d18;
+  background: var(--teal);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.repoworldpanel-body {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.repoworldpanel-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--cool-gray);
+}
+
+.repoworldpanel-lang {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.repoworldpanel-lang-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.repoworldpanel-sep {
+  color: var(--faint);
+}
+
+.repoworldpanel-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid rgba(167, 163, 196, 0.12);
+  border-bottom: 1px solid rgba(167, 163, 196, 0.12);
+}
+
+.repoworldpanel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.repoworldpanel-stat-value {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--warm-white);
+}
+
+.repoworldpanel-stat-label {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.repoworldpanel-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--space-2);
+  background: var(--teal);
+  color: #0e0d18;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background var(--dur-fast);
+}
+
+.repoworldpanel-cta:hover {
+  background: #6cc0b4;
+}
+
+.repoworldpanel-cta--secondary {
+  margin-top: 0;
+  background: transparent;
+  color: var(--cool-gray);
+  border: 1px solid rgba(167, 163, 196, 0.22);
+}
+
+.repoworldpanel-cta--secondary:hover {
+  background: rgba(89, 173, 162, 0.08);
+  color: var(--warm-white);
+  border-color: rgba(89, 173, 162, 0.5);
+}
+
+
+@media (max-width: 640px) {
+  .repoworldpanel {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 70vh;
+    border-left: none;
+    border-top: 1px solid rgba(167, 163, 196, 0.14);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: rwp-sheet-in var(--dur-med) var(--ease-panel);
+  }
+
+  @keyframes rwp-sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

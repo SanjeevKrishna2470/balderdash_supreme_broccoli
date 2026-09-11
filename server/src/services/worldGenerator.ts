@@ -6,7 +6,7 @@ import {
   SpriteBuildingType,
   TileDefinition,
   BiomeType
-} from '../../../types';
+} from '../types';
 import { RepositoryNormalizer } from './normalizer';
 import { AuthenticatedUser } from '../middleware/auth';
 

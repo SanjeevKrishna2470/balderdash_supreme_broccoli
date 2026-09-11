@@ -1,0 +1,267 @@
+.repopanel-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-panel);
+  background: rgba(8, 7, 16, 0.32);
+  backdrop-filter: blur(3px);
+  animation: scrim-in var(--dur-med) var(--ease-panel);
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.repopanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-panel);
+  width: min(380px, 92vw);
+  background: linear-gradient(180deg, #1a1830 0%, #15132a 100%);
+  border-left: 1px solid rgba(167, 163, 196, 0.14);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: panel-in var(--dur-med) var(--ease-panel);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.repopanel-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(14, 13, 24, 0.4);
+  color: var(--warm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.repopanel-close:hover {
+  background: rgba(14, 13, 24, 0.65);
+}
+
+.repopanel-header {
+  padding: var(--space-7) var(--space-5) var(--space-5);
+  position: relative;
+}
+
+.repopanel-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 13, 24, 0) 0%, rgba(14, 13, 24, 0.55) 100%);
+}
+
+.repopanel-owner,
+.repopanel-name,
+.repopanel-activity {
+  position: relative;
+}
+
+.repopanel-owner {
+  display: block;
+  font-size: 12.5px;
+  color: rgba(241, 234, 217, 0.75);
+  margin-bottom: 4px;
+}
+
+.repopanel-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 26px;
+  color: var(--ivory);
+  margin: 0 0 var(--space-3);
+  word-break: break-word;
+}
+
+.repopanel-activity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(241, 234, 217, 0.85);
+}
+
+.repopanel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.repopanel-activity--quiet .repopanel-dot {
+  background: var(--amber);
+}
+
+.repopanel-activity--dormant .repopanel-dot {
+  background: var(--dormant);
+}
+
+.repopanel-body {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.repopanel-desc {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--warm-white);
+  margin: 0;
+}
+
+.repopanel-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--cool-gray);
+}
+
+.repopanel-lang {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.repopanel-lang-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.repopanel-sep {
+  color: var(--faint);
+}
+
+.repopanel-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid rgba(167, 163, 196, 0.12);
+  border-bottom: 1px solid rgba(167, 163, 196, 0.12);
+}
+
+.repopanel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.repopanel-stat-value {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--warm-white);
+}
+
+.repopanel-stat-label {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.repopanel-contributors {
+  font-size: 13px;
+  color: var(--cool-gray);
+  margin: 0;
+}
+
+.repopanel-flag {
+  font-size: 12.5px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.repopanel-flag--build {
+  background: rgba(231, 181, 105, 0.12);
+  color: var(--amber);
+}
+
+.repopanel-flag--issue {
+  background: rgba(217, 128, 95, 0.12);
+  color: var(--coral);
+}
+
+.repopanel-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--space-2);
+  background: var(--teal);
+  color: #0e0d18;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  border: none;
+  width: 100%;
+  transition: background var(--dur-fast);
+}
+
+.repopanel-cta:hover {
+  background: #6cc0b4;
+}
+
+.repopanel-cta--secondary {
+  margin-top: 0;
+  background: transparent;
+  color: var(--cool-gray);
+  border: 1px solid rgba(167, 163, 196, 0.22);
+}
+
+.repopanel-cta--secondary:hover {
+  background: rgba(89, 173, 162, 0.08);
+  color: var(--warm-white);
+  border-color: rgba(89, 173, 162, 0.5);
+}
+
+@media (max-width: 640px) {
+  .repopanel {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 78vh;
+    border-left: none;
+    border-top: 1px solid rgba(167, 163, 196, 0.14);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: sheet-in var(--dur-med) var(--ease-panel);
+  }
+
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

@@ -1,0 +1,59 @@
+.mobile-controls {
+  position: absolute;
+  bottom: var(--space-5);
+  left: var(--space-5);
+  z-index: var(--z-chrome);
+  display: none;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  .mobile-controls {
+    display: block;
+  }
+}
+
+.mobile-pad {
+  position: relative;
+  width: 132px;
+  height: 132px;
+}
+
+.mobile-pad-btn {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(23, 22, 43, 0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(167, 163, 196, 0.18);
+  color: var(--warm-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.mobile-pad-btn:active {
+  background: rgba(89, 173, 162, 0.35);
+  border-color: var(--teal);
+}
+
+.mobile-pad-btn--up {
+  top: 0;
+  left: 44px;
+}
+
+.mobile-pad-btn--left {
+  top: 44px;
+  left: 0;
+}
+
+.mobile-pad-btn--down {
+  top: 88px;
+  left: 44px;
+}
+
+.mobile-pad-btn--right {
+  top: 44px;
+  left: 88px;
+}

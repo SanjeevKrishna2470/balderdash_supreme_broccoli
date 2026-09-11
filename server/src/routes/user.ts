@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { GitHubService } from '../services/github';
 import { RepositoryNormalizer } from '../services/normalizer';
-import { UserProfile, Achievement } from '../../../types';
+import { UserProfile, Achievement } from '../types';
 
 export const userRouter = Router();
 
@@ -62,7 +62,11 @@ userRouter.get('/profile', requireAuth, async (req: Request, res: Response) => {
   const accessToken = req.session!.accessToken!;
 
   try {
-    const rawRepos = await GitHubService.fetchUserRepos(accessToken);
+    const rawRepos =
+      accessToken === 'mock_dev_token'
+        ? await GitHubService.fetchPublicUserRepos('octocat')
+        : await GitHubService.fetchUserRepos(accessToken);
+
     const repos = RepositoryNormalizer.normalizeAll(rawRepos);
 
     const totalStars = repos.reduce((acc, r) => acc + r.stars, 0);

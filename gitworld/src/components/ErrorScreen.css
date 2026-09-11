@@ -1,0 +1,71 @@
+.error-screen {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 30%, #241c2c 0%, #141228 55%, #0b0a16 100%);
+  padding: var(--space-5);
+}
+
+.error-card {
+  max-width: 440px;
+  text-align: center;
+}
+
+.error-eyebrow {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.error-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--warm-white);
+  margin: 0 0 var(--space-3);
+}
+
+.error-message {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--cool-gray);
+  margin: 0 0 var(--space-6);
+}
+
+.error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.error-retry {
+  background: var(--teal);
+  color: #0e0d18;
+  border: none;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: var(--radius-pill);
+}
+
+.error-retry:hover {
+  background: #6cc0b4;
+}
+
+.error-demo {
+  background: transparent;
+  color: var(--cool-gray);
+  border: none;
+  font-size: 13.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.error-demo:hover {
+  color: var(--warm-white);
+}

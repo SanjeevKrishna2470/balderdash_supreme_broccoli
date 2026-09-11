@@ -1,0 +1,114 @@
+/* ============================================================
+   GitWorld design tokens
+   A deep-dusk editorial city: ink/violet ground, warm ivory
+   architecture, teal as the one UI accent. Coral/lavender/amber
+   are reserved for language + activity meaning, never for chrome.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* --- core palette --- */
+  --ink-void: #0e0d18;
+  --ink-deep: #14132424;
+  --dusk-1: #17162b;
+  --dusk-2: #201f3f;
+  --dusk-3: #2b295a;
+
+  --ivory: #f1ead9;
+  --warm-white: #f6efe4;
+  --cool-gray: #a7a3c4;
+  --faint: #504d78;
+
+  --teal: #59ada2;
+  --teal-dim: #3d7d76;
+  --amber: #e7b569;
+  --coral: #d9805f;
+  --lavender: #948bd0;
+  --clay: #b97c5a;
+  --moss: #7c9a6f;
+
+  --danger: #d97a6b;
+  --dormant: #5a577c;
+
+  /* --- typography --- */
+  --font-display: 'Fraunces', 'Iowan Old Style', serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* --- spacing --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* --- radii --- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* --- motion --- */
+  --ease-world: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-panel: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 140ms;
+  --dur-med: 320ms;
+  --dur-slow: 620ms;
+
+  /* --- elevation --- */
+  --shadow-panel: 0 24px 60px -20px rgba(5, 4, 12, 0.7);
+  --shadow-soft: 0 8px 24px -12px rgba(5, 4, 12, 0.5);
+
+  --z-canvas: 0;
+  --z-chrome: 10;
+  --z-panel: 20;
+  --z-overlay: 30;
+  --z-toast: 40;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--ink-void);
+  color: var(--warm-white);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.tabular {
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
