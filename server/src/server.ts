@@ -8,17 +8,34 @@ import { reposRouter } from './routes/repos';
 import { userRouter } from './routes/user';
 import { settingsRouter } from './routes/settings';
 
+import { tokenAuthMiddleware } from './middleware/tokenAuth';
+
 const app = express();
 
 // Trust proxy for secure cookies in production/reverse proxies
 app.set('trust proxy', 1);
 
-// CORS configuration to allow credentials (cookies) from frontend
+// CORS configuration to allow credentials (cookies / headers) from frontend
+const clientOrigin = config.clientUrl.replace(/\/+$/, '');
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/+$/, '');
+      if (
+        cleanOrigin === clientOrigin ||
+        cleanOrigin === 'http://localhost:5173' ||
+        cleanOrigin === 'http://127.0.0.1:5173'
+      ) {
+        return callback(null, true);
+      }
+      // If deployed on custom domain or alternative port
+      return callback(null, true);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 
@@ -35,6 +52,9 @@ app.use(
     httpOnly: true
   })
 );
+
+// Token authentication middleware (supports Bearer tokens across distinct domains)
+app.use(tokenAuthMiddleware);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({

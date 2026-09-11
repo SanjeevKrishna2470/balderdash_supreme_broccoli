@@ -1,6 +1,37 @@
 import type { RepositoryModel } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5000';
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5000';
+
+const TOKEN_STORAGE_KEY = 'gitworld_auth_token';
+
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string | null): void {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore localStorage errors in private browsing modes
+  }
+}
+
+export function getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extraHeaders };
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export interface LiveSession {
   username: string;
@@ -14,6 +45,7 @@ export interface LiveSession {
 interface MeResponse {
   isAuthenticated: boolean;
   privateAccess?: boolean;
+  token?: string;
   user: {
     id: number;
     username: string;
@@ -26,12 +58,24 @@ interface MeResponse {
 
 /** Checks whether an authenticated GitHub session already exists server-side. */
 export async function fetchSession(): Promise<LiveSession | null> {
-  const meRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include', cache: 'no-store' });
+  const meRes = await fetch(`${API_BASE}/api/auth/me`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store',
+  });
   if (!meRes.ok) return null;
   const me: MeResponse = await meRes.json();
   if (!me.isAuthenticated || !me.user) return null;
 
-  const reposRes = await fetch(`${API_BASE}/api/repos`, { credentials: 'include', cache: 'no-store' });
+  if (me.token) {
+    setAuthToken(me.token);
+  }
+
+  const reposRes = await fetch(`${API_BASE}/api/repos`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store',
+  });
   if (reposRes.status === 401) return null; // session expired between the two calls
   if (!reposRes.ok) {
     const body = await reposRes.json().catch(() => null);
@@ -131,10 +175,13 @@ export async function logout(): Promise<void> {
   try {
     await fetch(`${API_BASE}/api/auth/logout`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
   } catch {
     // Ignore network error on logout
+  } finally {
+    setAuthToken(null);
   }
 }
 
@@ -158,7 +205,7 @@ export interface CreateRepoResult {
 export async function createRepository(payload: CreateRepoPayload): Promise<CreateRepoResult> {
   const res = await fetch(`${API_BASE}/api/repos`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -200,7 +247,10 @@ export interface PublicWorldManifest {
 
 export async function fetchPublicWorldManifests(): Promise<PublicWorldManifest[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/world/public-manifests`);
+    const res = await fetch(`${API_BASE}/api/world/public-manifests`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
     if (res.ok) {
       return res.json();
     }

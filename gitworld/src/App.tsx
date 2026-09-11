@@ -16,7 +16,7 @@ import { buildCity } from './world/worldBuilder';
 import { buildRepoWorld } from './world/repoWorldBuilder';
 import { fetchRepoTree } from './world/repoApi';
 import { getDemoRepos, getDemoUser } from './world/mockRepos';
-import { fetchSession, beginGithubLogin, beginPrivateAccess, fetchUserByUsername, logout } from './world/api';
+import { fetchSession, beginGithubLogin, beginPrivateAccess, fetchUserByUsername, logout, setAuthToken } from './world/api';
 import type { CityBuilding } from './world/cityTypes';
 
 export default function App() {
@@ -139,19 +139,26 @@ export default function App() {
     } catch {
       // Ignore network errors on logout
     }
+    setAuthToken(null);
     useWorldStore.getState().logout();
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const auth = params.get('auth');
+    const token = params.get('token');
+
+    if (token) {
+      setAuthToken(token);
+    }
+
     if (!auth) return;
 
-    // Strip the query param immediately so a refresh doesn't replay this.
+    // Strip the query params immediately so a refresh doesn't replay this.
     window.history.replaceState({}, '', window.location.pathname);
 
     if (auth === 'success') {
-      // Do not restart OAuth automatically after a callback. If the cookie or
+      // Do not restart OAuth automatically after a callback. If the session or
       // API is temporarily unavailable, show a recoverable error instead of
       // sending the browser through an OAuth loop.
       signIn(false);

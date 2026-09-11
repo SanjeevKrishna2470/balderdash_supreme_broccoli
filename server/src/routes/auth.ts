@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { config } from '../config';
+import { signToken } from '../services/token';
 
 export const authRouter = Router();
 
@@ -95,29 +96,39 @@ authRouter.get('/callback', async (req: Request, res: Response) => {
     });
 
     const ghUser = userResponse.data;
+    const isPrivate = req.query.state === 'private';
+    const user = {
+      id: ghUser.id,
+      username: ghUser.login,
+      displayName: ghUser.name || ghUser.login,
+      avatarUrl: ghUser.avatar_url,
+      htmlUrl: ghUser.html_url,
+      publicRepos: ghUser.public_repos
+    };
+    const gatekeeper = {
+      status: 'welcome' as const,
+      dialogue: `The ancient archway pulses with azure light! Grimwald lowers his halberd: "Welcome, lord ${ghUser.login}! The chronicles acknowledge your deeds. Enter your domain."`
+    };
 
-    // 3. Store in session
+    // 3. Store in session (for environments supporting first-party cookies)
     if (req.session) {
       req.session.accessToken = access_token;
-      req.session.user = {
-        id: ghUser.id,
-        username: ghUser.login,
-        displayName: ghUser.name || ghUser.login,
-        avatarUrl: ghUser.avatar_url,
-        htmlUrl: ghUser.html_url,
-        publicRepos: ghUser.public_repos
-      };
-
-      // Gatekeeper Narrative Branch: Successful Auth
-      req.session.gatekeeper = {
-        status: 'welcome',
-        dialogue: `The ancient archway pulses with azure light! Grimwald lowers his halberd: "Welcome, lord ${ghUser.login}! The chronicles acknowledge your deeds. Enter your domain."`
-      };
-      if (req.query.state === 'private') req.session.privateAccess = true;
+      req.session.user = user;
+      req.session.gatekeeper = gatekeeper;
+      if (isPrivate) req.session.privateAccess = true;
     }
 
-    // 4. Redirect user back to the frontend game landing page
-    return res.redirect(`${config.clientUrl}?auth=success`);
+    // 4. Generate signed token for reliable cross-origin Bearer auth
+    const token = signToken({
+      accessToken: access_token,
+      user,
+      privateAccess: isPrivate,
+      gatekeeper
+    });
+
+    // 5. Redirect user back to the frontend game landing page with token
+    const clientBase = config.clientUrl.replace(/\/+$/, '');
+    return res.redirect(`${clientBase}?auth=success&token=${encodeURIComponent(token)}`);
   } catch (err: any) {
     console.error('OAuth callback failed:', err?.response?.data || err.message);
 
@@ -128,7 +139,8 @@ authRouter.get('/callback', async (req: Request, res: Response) => {
       };
     }
 
-    return res.redirect(`${config.clientUrl}?auth=error`);
+    const clientBase = config.clientUrl.replace(/\/+$/, '');
+    return res.redirect(`${clientBase}?auth=error`);
   }
 });
 
@@ -156,10 +168,18 @@ authRouter.get('/me', (req: Request, res: Response) => {
     });
   }
 
+  const token = signToken({
+    accessToken: req.session!.accessToken!,
+    user,
+    gatekeeper,
+    privateAccess: req.session?.privateAccess === true
+  });
+
   return res.json({
     isAuthenticated: true,
     user,
     gatekeeper,
+    token,
     privateAccess: req.session?.privateAccess === true
   });
 });
@@ -168,23 +188,34 @@ authRouter.get('/me', (req: Request, res: Response) => {
  * Dev/Mock Login for instant testing without requiring GitHub App setup
  */
 authRouter.get('/mock-login', (req: Request, res: Response) => {
+  const mockUser = {
+    id: 583231,
+    username: 'octocat',
+    displayName: 'The Monalisa Octocat',
+    avatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=4',
+    htmlUrl: 'https://github.com/octocat',
+    publicRepos: 8
+  };
+  const mockGatekeeper = {
+    status: 'welcome' as const,
+    dialogue: 'The gates swing open to the realm of the legendary Octocat!'
+  };
+
   if (req.session) {
     req.session.accessToken = 'mock_dev_token';
-    req.session.user = {
-      id: 583231,
-      username: 'octocat',
-      displayName: 'The Monalisa Octocat',
-      avatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=4',
-      htmlUrl: 'https://github.com/octocat',
-      publicRepos: 8
-    };
-    req.session.gatekeeper = {
-      status: 'welcome',
-      dialogue: 'The gates swing open to the realm of the legendary Octocat!'
-    };
+    req.session.user = mockUser;
+    req.session.gatekeeper = mockGatekeeper;
   }
 
-  return res.redirect(`${config.clientUrl}?auth=success`);
+  const token = signToken({
+    accessToken: 'mock_dev_token',
+    user: mockUser,
+    privateAccess: false,
+    gatekeeper: mockGatekeeper
+  });
+
+  const clientBase = config.clientUrl.replace(/\/+$/, '');
+  return res.redirect(`${clientBase}?auth=success&token=${encodeURIComponent(token)}`);
 });
 
 /**

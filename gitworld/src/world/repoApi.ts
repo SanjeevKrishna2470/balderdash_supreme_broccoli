@@ -1,7 +1,7 @@
 import type { NormalizedRepoTree, RepoDirectoryNode, RepoFileNode, CodeCategory } from './repoWorldTypes';
 import { getMockFileContent } from './mockCodeContent';
+import { API_BASE, getAuthHeaders } from './api';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5000';
 const treeCache = new Map<string, NormalizedRepoTree>();
 const fileCache = new Map<string, RepoFileContent>();
 
@@ -44,7 +44,10 @@ export async function fetchRepoFileContent(
   try {
     const res = await fetch(
       `${API_BASE}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/file?path=${encodeURIComponent(cleanPath)}`,
-      { credentials: 'include' }
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      }
     );
     if (res.ok) {
       const data = await res.json();
@@ -99,6 +102,7 @@ export async function fetchRepoTree(owner: string, repo: string): Promise<Normal
   // 1. Try Backend API
   try {
     const res = await fetch(`${API_BASE}/api/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tree`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     if (res.ok) {
