@@ -58,12 +58,16 @@ export default function App() {
     }, 900);
   }, [setScreen, setWorld]);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (redirectIfMissing = true) => {
     setScreen('loading');
     try {
       const session = await fetchSession();
       if (!session) {
-        beginGithubLogin();
+        if (redirectIfMissing) {
+          beginGithubLogin();
+        } else {
+          setError('Your GitHub session was not available after authorization. Please try signing in again.');
+        }
         return;
       }
       const city = buildCity(session.repos, {
@@ -147,7 +151,10 @@ export default function App() {
     window.history.replaceState({}, '', window.location.pathname);
 
     if (auth === 'success') {
-      signIn();
+      // Do not restart OAuth automatically after a callback. If the cookie or
+      // API is temporarily unavailable, show a recoverable error instead of
+      // sending the browser through an OAuth loop.
+      signIn(false);
     } else if (auth === 'denied') {
       setError('Sign-in was cancelled before GitHub granted access.');
     } else if (auth === 'error') {
