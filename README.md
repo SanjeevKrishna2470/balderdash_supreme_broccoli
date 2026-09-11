@@ -6,7 +6,7 @@
 
 ### Team Name
 
-[Add team name]
+Sirens
 
 ### Team Members
 
