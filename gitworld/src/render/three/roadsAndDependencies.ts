@@ -5,6 +5,7 @@ const SCALE = 0.22;
 
 export interface RoadNetwork3D {
   group: THREE.Group;
+  groundMesh: THREE.Mesh;
   updateSelection: (selectedBuildingId: string | null, hoveredBuildingId: string | null) => void;
   update: (time: number) => void;
   dispose: () => void;
@@ -189,6 +190,7 @@ export function createRoadNetwork3D(
 
   return {
     group,
+    groundMesh,
     updateSelection,
     update,
     dispose,

@@ -5,11 +5,20 @@ import { createBuilding3D, type Building3DObject } from './three/buildingGeometr
 import { createVegetationSystem, type VegetationSystem } from './three/vegetationSystem';
 import { createRoadNetwork3D, type RoadNetwork3D } from './three/roadsAndDependencies';
 import { createContributorAgents, type ContributorAgentsSystem } from './three/contributorAgents';
+import { createPlayerAvatar3D, type PlayerAvatar3D } from './three/playerAvatar3D';
+import {
+  type PlayerState,
+  createInitialPlayerState,
+  stepPlayerController,
+} from '../world/playerController';
+import { useWorldStore } from '../state/useWorldStore';
 
 export interface City3DCanvasHandle {
   flyToBuilding: (id: string) => void;
   nudgePlayer: (dx: number, dy: number) => void;
   resetOverview: () => void;
+  recenterOnPlayer: () => void;
+  triggerInteraction: () => void;
 }
 
 interface Props {
@@ -18,6 +27,9 @@ interface Props {
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
   onEnter?: (id: string) => void;
+  onOpenCreateRepo?: () => void;
+  onOpenPublicWorld?: () => void;
+  onInteractionChange?: (label: string | null) => void;
   active?: boolean;
   quality?: 'high' | 'balanced' | 'performance';
   reducedMotion?: boolean;
@@ -34,6 +46,9 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
     onHover,
     onSelect,
     onEnter,
+    onOpenCreateRepo,
+    onOpenPublicWorld,
+    onInteractionChange,
     active = true,
     quality = 'balanced',
     reducedMotion = false,
@@ -45,7 +60,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // References to mutable three.js objects
+  // Three.js object references
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -53,14 +68,24 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
   const roadNetworkRef = useRef<RoadNetwork3D | null>(null);
   const vegetationRef = useRef<VegetationSystem | null>(null);
   const agentsRef = useRef<ContributorAgentsSystem | null>(null);
+  const avatarRef = useRef<PlayerAvatar3D | null>(null);
+
+  // Ground-based Player State
+  const initialSpawn = useWorldStore.getState().playerPosition ?? world.spawnPoint;
+  const playerStateRef = useRef<PlayerState>(createInitialPlayerState(initialSpawn));
+  const keysRef = useRef<Set<string>>(new Set());
+  const nudgeRef = useRef({ x: 0, y: 0 });
+  const followPlayerRef = useRef<boolean>(true);
+  const lastInteractionLabelRef = useRef<string | null>(null);
+  const lastSyncTimeRef = useRef<number>(0);
 
   // Camera Orbit & Pan State
   const camStateRef = useRef({
     target: new THREE.Vector3(0, 0, 0),
-    spherical: new THREE.Spherical(220, Math.PI * 0.32, Math.PI * 0.25),
-    targetSpherical: new THREE.Spherical(220, Math.PI * 0.32, Math.PI * 0.25),
-    lookTarget: new THREE.Vector3(0, 0, 0),
-    targetLookTarget: new THREE.Vector3(0, 0, 0),
+    spherical: new THREE.Spherical(75, Math.PI * 0.35, Math.PI * 0.25),
+    targetSpherical: new THREE.Spherical(75, Math.PI * 0.35, Math.PI * 0.25),
+    lookTarget: new THREE.Vector3(initialSpawn.x * SCALE, 1.2, initialSpawn.y * SCALE),
+    targetLookTarget: new THREE.Vector3(initialSpawn.x * SCALE, 1.2, initialSpawn.y * SCALE),
     isDragging: false,
     dragButton: 0, // 0 = left orbit, 2 = right pan
     lastMouseX: 0,
@@ -78,6 +103,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
   const flyToCoords = useCallback((x: number, z: number, distance = 70) => {
     const cam = camStateRef.current;
     cam.targetLookTarget.set(x, 0, z);
+    followPlayerRef.current = false; // flying to building detaches player follow temporarily
 
     if (reducedMotion) {
       cam.lookTarget.copy(cam.targetLookTarget);
@@ -98,11 +124,12 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       }
     },
     nudgePlayer: (dx: number, dy: number) => {
-      const cam = camStateRef.current;
-      cam.targetLookTarget.x += dx * 1.5;
-      cam.targetLookTarget.z += dy * 1.5;
+      nudgeRef.current.x += dx;
+      nudgeRef.current.y += dy;
+      followPlayerRef.current = true;
     },
     resetOverview: () => {
+      followPlayerRef.current = false;
       const cam = camStateRef.current;
       cam.targetLookTarget.set(0, 0, 0);
       cam.targetSpherical.radius = 240;
@@ -110,7 +137,92 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       cam.targetSpherical.theta = Math.PI * 0.25;
       cam.isAnimatingTo = true;
     },
+    recenterOnPlayer: () => {
+      followPlayerRef.current = true;
+      const p = playerStateRef.current.position;
+      camStateRef.current.targetLookTarget.set(p.x * SCALE, 1.2, p.y * SCALE);
+      camStateRef.current.targetSpherical.radius = 70;
+      camStateRef.current.targetSpherical.phi = Math.PI * 0.35;
+      camStateRef.current.isAnimatingTo = true;
+    },
+    triggerInteraction: () => {
+      const interaction = playerStateRef.current.activeInteraction;
+      if (interaction) {
+        if (interaction.type === 'building' && onEnter) {
+          onEnter(interaction.actionId);
+        } else if (interaction.type === 'desk' && onOpenCreateRepo) {
+          onOpenCreateRepo();
+        } else if (interaction.type === 'gate' && onOpenPublicWorld) {
+          onOpenPublicWorld();
+        }
+      }
+    },
   }));
+
+  // Keyboard and Proximity Interaction Handling
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!active) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+
+      const key = e.key.toLowerCase();
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
+        e.preventDefault();
+      }
+
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+        keysRef.current.add(key);
+        playerStateRef.current.destination = null; // Keyboard cancels click-to-move
+        followPlayerRef.current = true; // Moving re-engages camera follow
+      }
+
+      // Proximity interaction on 'E' or 'Enter'
+      if (key === 'e' || key === 'enter') {
+        const interaction = playerStateRef.current.activeInteraction;
+        if (interaction) {
+          e.preventDefault();
+          if (interaction.type === 'building' && onEnter) {
+            onEnter(interaction.actionId);
+          } else if (interaction.type === 'desk' && onOpenCreateRepo) {
+            onOpenCreateRepo();
+          } else if (interaction.type === 'gate' && onOpenPublicWorld) {
+            onOpenPublicWorld();
+          }
+        }
+      }
+
+      // Space or R: Recenter camera on player
+      if (key === ' ' || key === 'r') {
+        e.preventDefault();
+        followPlayerRef.current = true;
+        const p = playerStateRef.current.position;
+        camStateRef.current.targetLookTarget.set(p.x * SCALE, 1.2, p.y * SCALE);
+        camStateRef.current.targetSpherical.radius = 70;
+        camStateRef.current.targetSpherical.phi = Math.PI * 0.35;
+      }
+    };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      keysRef.current.delete(e.key.toLowerCase());
+    };
+
+    const onClear = () => {
+      keysRef.current.clear();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onClear);
+    document.addEventListener('visibilitychange', onClear);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onClear);
+      document.removeEventListener('visibilitychange', onClear);
+    };
+  }, [active, onEnter, onOpenCreateRepo, onOpenPublicWorld]);
 
   // Watch selectedBuildingId prop changes
   useEffect(() => {
@@ -200,7 +312,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
     fillLight.position.set(-150, 90, -120);
     scene.add(fillLight);
 
-    // Build Roads and Districts
+    // Build Roads and Ground
     const roads = createRoadNetwork3D(world, quality);
     scene.add(roads.group);
     roadNetworkRef.current = roads;
@@ -227,7 +339,13 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
     scene.add(agents.group);
     agentsRef.current = agents;
 
-    // Raycaster for Hover & Selection
+    // Build Ground-Based Player Character
+    const avatar = createPlayerAvatar3D(world.user.profileColorSeed ?? 42, quality);
+    scene.add(avatar.group);
+    scene.add(avatar.destinationMarker);
+    avatarRef.current = avatar;
+
+    // Raycaster for Hover, Selection, and Click-to-Move
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -241,6 +359,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
 
       if (intersects.length > 0) {
         const hitBuildingId = intersects[0].object.userData.buildingId as string;
+        canvas.style.cursor = 'pointer';
         if (hoveredBuildingIdRef.current !== hitBuildingId) {
           hoveredBuildingIdRef.current = hitBuildingId;
           onHover(hitBuildingId);
@@ -262,6 +381,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
           roads.updateSelection(selectedBuildingIdRef.current, hitBuildingId);
         }
       } else {
+        canvas.style.cursor = 'grab';
         if (hoveredBuildingIdRef.current !== null) {
           hoveredBuildingIdRef.current = null;
           onHover(null);
@@ -295,7 +415,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       const movedDist = Math.hypot(e.clientX - cam.lastMouseX, e.clientY - cam.lastMouseY);
       cam.isDragging = false;
 
-      // Click selection
+      // Click: Building selection or Click-to-Move on ground
       if (movedDist < 5 && e.button === 0) {
         const rect = canvas.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -306,6 +426,16 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
         if (intersects.length > 0) {
           const hitBuildingId = intersects[0].object.userData.buildingId as string;
           onSelect(hitBuildingId);
+        } else {
+          // Raycast ground for click-to-move destination navigation
+          const groundHits = raycaster.intersectObject(roads.groundMesh, false);
+          if (groundHits.length > 0) {
+            const hitPt = groundHits[0].point;
+            const targetX = hitPt.x / SCALE;
+            const targetY = hitPt.z / SCALE;
+            playerStateRef.current.destination = { x: targetX, y: targetY };
+            followPlayerRef.current = true;
+          }
         }
       }
     };
@@ -324,7 +454,8 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
         cam.targetSpherical.theta -= dx * 0.006;
         cam.targetSpherical.phi = Math.max(0.15, Math.min(Math.PI * 0.44, cam.targetSpherical.phi - dy * 0.006));
       } else {
-        // Pan
+        // Pan manually (user takes control of camera focus)
+        followPlayerRef.current = false;
         const panSpeed = (cam.spherical.radius / 600) * 0.8;
         const forward = new THREE.Vector3();
         camera.getWorldDirection(forward);
@@ -392,10 +523,61 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
 
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
+      const dtSec = Math.min(0.064, delta);
 
-      // Camera Damping & Lerp
+      // 1. Gather Player Movement Input
+      const keys = keysRef.current;
+      let moveDx = 0;
+      let moveDy = 0;
+
+      if (keys.has('w') || keys.has('arrowup')) moveDy -= 1;
+      if (keys.has('s') || keys.has('arrowdown')) moveDy += 1;
+      if (keys.has('a') || keys.has('arrowleft')) moveDx -= 1;
+      if (keys.has('d') || keys.has('arrowright')) moveDx += 1;
+
+      moveDx += nudgeRef.current.x;
+      moveDy += nudgeRef.current.y;
+      nudgeRef.current.x = 0;
+      nudgeRef.current.y = 0;
+
+      // 2. Step Kinematic Player Controller (Acceleration, Collision Sliding, Proximity)
+      const nextPlayerState = stepPlayerController(
+        playerStateRef.current,
+        { dx: moveDx, dy: moveDy },
+        dtSec,
+        world
+      );
+      playerStateRef.current = nextPlayerState;
+
+      // 3. Update 3D Character Presentation
+      avatar.update(nextPlayerState, time);
+
+      // 4. Proximity Interaction Feedback
+      const currentInteractionLabel = nextPlayerState.activeInteraction?.label ?? null;
+      if (currentInteractionLabel !== lastInteractionLabelRef.current) {
+        lastInteractionLabelRef.current = currentInteractionLabel;
+        onInteractionChange?.(currentInteractionLabel);
+      }
+
+      // 5. Throttled Position Synchronization to World Store
+      if (time - lastSyncTimeRef.current > 0.12) {
+        lastSyncTimeRef.current = time;
+        useWorldStore.getState().setPlayerPosition(nextPlayerState.position, nextPlayerState.facing);
+      }
+
+      // 6. Camera Damping, Orbit & Third-Person Follow
       const cam = camStateRef.current;
-      const lerpFactor = reducedMotion ? 1 : Math.min(1, delta * 8);
+
+      if (followPlayerRef.current) {
+        const pX = nextPlayerState.position.x * SCALE;
+        const pZ = nextPlayerState.position.y * SCALE;
+        // Comfortable velocity look-ahead
+        const lookAheadX = (nextPlayerState.velocity.x / 230) * 1.5;
+        const lookAheadZ = (nextPlayerState.velocity.y / 230) * 1.5;
+        cam.targetLookTarget.set(pX + lookAheadX, 1.2, pZ + lookAheadZ);
+      }
+
+      const lerpFactor = reducedMotion ? 1 : Math.min(1, delta * 7);
 
       cam.spherical.radius += (cam.targetSpherical.radius - cam.spherical.radius) * lerpFactor;
       cam.spherical.theta += (cam.targetSpherical.theta - cam.spherical.theta) * lerpFactor;
@@ -407,7 +589,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       camera.position.setFromSpherical(cam.spherical).add(cam.lookTarget);
       camera.lookAt(cam.lookTarget);
 
-      // Update Subsystems
+      // 7. Update World Subsystems
       bMap.forEach((obj) => obj.update(time));
       roads.update(time);
       agents.update(time);
@@ -432,6 +614,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       roads.dispose();
       vegetation.dispose();
       agents.dispose();
+      avatar.dispose();
       bMap.forEach((obj) => {
         obj.hitBox.geometry.dispose();
         obj.highlightMesh.geometry.dispose();
@@ -439,7 +622,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
 
       renderer.dispose();
     };
-  }, [world, active, quality, reducedMotion, cameraMode, onEnter, onHover, onSelect, onWebGLUnavailable]);
+  }, [world, active, quality, reducedMotion, cameraMode, onEnter, onHover, onSelect, onInteractionChange, onWebGLUnavailable]);
 
   return (
     <div

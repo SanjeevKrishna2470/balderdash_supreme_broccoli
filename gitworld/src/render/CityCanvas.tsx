@@ -1,5 +1,7 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import type { CityWorldModel, CityBuilding } from '../world/cityTypes';
+import { resolveMovement, PLAYER_CONFIG } from '../world/playerController';
+import { useWorldStore } from '../state/useWorldStore';
 import {
   createCamera,
   stepCamera,
@@ -31,6 +33,8 @@ import {
 export interface CityCanvasHandle {
   flyToBuilding: (id: string) => void;
   nudgePlayer: (dx: number, dy: number) => void;
+  recenterOnPlayer?: () => void;
+  triggerInteraction?: () => void;
 }
 
 interface Props {
@@ -50,21 +54,34 @@ interface Props {
   onOpenCreateRepo?: () => void;
   onOpenPublicWorld?: () => void;
   onRiverExit?: () => void;
+  onInteractionChange?: (label: string | null) => void;
 }
 
 const PLAYER_SPEED = 220; // world units / second
 const VIEW_MARGIN = 160;
 
 export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanvas(
-  { world, selectedBuildingId, onHover, onSelect, onEnter, active = true, onOpenCreateRepo, onOpenPublicWorld, onRiverExit },
+  {
+    world,
+    selectedBuildingId,
+    onHover,
+    onSelect,
+    onEnter,
+    active = true,
+    onOpenCreateRepo,
+    onOpenPublicWorld,
+    onRiverExit,
+    onInteractionChange,
+  },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const camRef = useRef<CameraState>(createCamera(world.spawnPoint.x, world.spawnPoint.y, 1));
-  const playerRef = useRef({ x: world.spawnPoint.x, y: world.spawnPoint.y });
-  const facingRef = useRef({ x: 0, y: 1 });
+  const initialPlayerPos = useWorldStore.getState().playerPosition || { x: world.spawnPoint.x, y: world.spawnPoint.y };
+  const camRef = useRef<CameraState>(createCamera(initialPlayerPos.x, initialPlayerPos.y, 1));
+  const playerRef = useRef({ x: initialPlayerPos.x, y: initialPlayerPos.y });
+  const facingRef = useRef(useWorldStore.getState().playerFacing || { x: 0, y: 1 });
   const keysRef = useRef<Set<string>>(new Set());
   const nudgeRef = useRef({ x: 0, y: 0 });
   const clickTargetRef = useRef<{ x: number; y: number } | null>(null);
@@ -81,6 +98,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
   const nearGateRef = useRef(false);
   const splashRef = useRef<{ x: number; y: number; progress: number } | null>(null);
   const lastRiverExitTimeRef = useRef(0);
+  const lastProximityLabelRef = useRef<string | null>(null);
 
   const walkPhaseRef = useRef(0);
   const isWalkingRef = useRef(false);
@@ -100,7 +118,22 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
 
   useEffect(() => {
     activeRef.current = active;
-  }, [active]);
+    if (active) {
+      const pos = useWorldStore.getState().playerPosition;
+      if (pos) {
+        playerRef.current.x = pos.x;
+        playerRef.current.y = pos.y;
+        flyTo(camRef.current, pos.x, pos.y);
+      }
+      const facing = useWorldStore.getState().playerFacing;
+      if (facing) {
+        facingRef.current = { ...facing };
+      }
+      onInteractionChange?.(lastProximityLabelRef.current);
+    } else {
+      keysRef.current.clear();
+    }
+  }, [active, onInteractionChange]);
 
   useEffect(() => {
     if (world.boat) {
@@ -123,6 +156,35 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
     selectedIdRef.current = selectedBuildingId;
   }, [selectedBuildingId]);
 
+  const triggerInteraction = useCallback(() => {
+    // 1. Board ferry boat
+    if (nearDockRef.current && boatRef.current && boatRef.current.state !== 'crossing') {
+      boatRef.current.state = 'crossing';
+      boatRef.current.targetDock = nearDockRef.current === 'town' ? 'construction' : 'town';
+      boatRef.current.progress = 0;
+      isBoardingRef.current = true;
+      return;
+    }
+
+    // 2. Blueprint desk in construction district
+    if (nearDeskRef.current && onOpenCreateRepo) {
+      onOpenCreateRepo();
+      return;
+    }
+
+    // 3. Public world gateway
+    if (nearGateRef.current && onOpenPublicWorld) {
+      onOpenPublicWorld();
+      return;
+    }
+
+    // 4. Enter repository interior
+    if (nearBuildingRef.current) {
+      onEnter(nearBuildingRef.current.id);
+      return;
+    }
+  }, [onEnter, onOpenCreateRepo, onOpenPublicWorld]);
+
   useImperativeHandle(ref, () => ({
     flyToBuilding(id: string) {
       const b = world.buildings.find((x) => x.id === id);
@@ -133,6 +195,13 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
     nudgePlayer(dx: number, dy: number) {
       nudgeRef.current.x += dx;
       nudgeRef.current.y += dy;
+    },
+    recenterOnPlayer() {
+      followingRef.current = true;
+      flyTo(camRef.current, playerRef.current.x, playerRef.current.y, clampZoom(1.0));
+    },
+    triggerInteraction() {
+      triggerInteraction();
     },
   }));
 
@@ -171,36 +240,9 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
 
       // Proximity interaction trigger: 'E' or 'Enter'
       if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') {
-        // 1. Board ferry boat
-        if (nearDockRef.current && boatRef.current && boatRef.current.state !== 'crossing') {
-          e.preventDefault();
-          boatRef.current.state = 'crossing';
-          boatRef.current.targetDock = nearDockRef.current === 'town' ? 'construction' : 'town';
-          boatRef.current.progress = 0;
-          isBoardingRef.current = true;
-          return;
-        }
-
-        // 2. Blueprint desk in construction district
-        if (nearDeskRef.current && onOpenCreateRepo) {
-          e.preventDefault();
-          onOpenCreateRepo();
-          return;
-        }
-
-        // 3. Public world gateway
-        if (nearGateRef.current && onOpenPublicWorld) {
-          e.preventDefault();
-          onOpenPublicWorld();
-          return;
-        }
-
-        // 4. Enter repository interior
-        if (nearBuildingRef.current) {
-          e.preventDefault();
-          onEnter(nearBuildingRef.current.id);
-          return;
-        }
+        e.preventDefault();
+        triggerInteraction();
+        return;
       }
 
       keysRef.current.add(e.key.toLowerCase());
@@ -208,13 +250,19 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
     };
 
     const up = (e: KeyboardEvent) => keysRef.current.delete(e.key.toLowerCase());
+    const onClear = () => keysRef.current.clear();
+
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
+    window.addEventListener('blur', onClear);
+    document.addEventListener('visibilitychange', onClear);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', onClear);
+      document.removeEventListener('visibilitychange', onClear);
     };
-  }, [onEnter, onOpenCreateRepo, onOpenPublicWorld]);
+  }, [triggerInteraction]);
 
   // Input: mouse / trackpad
   useEffect(() => {
@@ -351,6 +399,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         if (isBoardingRef.current) {
           playerRef.current.x = boatRef.current.x;
           playerRef.current.y = boatRef.current.y;
+          useWorldStore.getState().setPlayerPosition(playerRef.current, facingRef.current);
           followingRef.current = true;
         }
 
@@ -359,6 +408,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
           if (isBoardingRef.current) {
             playerRef.current.y = boatRef.current.targetDock === 'construction' ? toDock.y + 18 : toDock.y - 18;
             isBoardingRef.current = false;
+            useWorldStore.getState().setPlayerPosition(playerRef.current, facingRef.current);
           }
         }
       }
@@ -399,8 +449,14 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         const nx = dx / len;
         const ny = dy / len;
         facingRef.current = { x: nx, y: ny };
-        playerRef.current.x += nx * PLAYER_SPEED * (dt / 1000);
-        playerRef.current.y += ny * PLAYER_SPEED * (dt / 1000);
+        const prospective = {
+          x: playerRef.current.x + nx * PLAYER_SPEED * (dt / 1000),
+          y: playerRef.current.y + ny * PLAYER_SPEED * (dt / 1000),
+        };
+        const resolved = resolveMovement(playerRef.current, prospective, PLAYER_CONFIG.collisionRadius, world);
+        playerRef.current.x = resolved.x;
+        playerRef.current.y = resolved.y;
+        useWorldStore.getState().setPlayerPosition(playerRef.current, facingRef.current);
         followingRef.current = true;
         walkPhaseRef.current += (dt / 1000) * 1.5;
       } else {
@@ -431,6 +487,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
               playerRef.current.x = safePoint.x;
               playerRef.current.y = safePoint.y;
               clickTargetRef.current = null;
+              useWorldStore.getState().setPlayerPosition(playerRef.current, facingRef.current);
               onRiverExit?.();
             }
           }
@@ -584,6 +641,24 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
       }
 
       // Contextual Interaction Prompt when in range of building
+      let currentPrompt: string | null = null;
+      if (nearDockRef.current && boatRef.current && boatRef.current.state !== 'crossing') {
+        currentPrompt = 'Board Ferry Boat';
+      } else if (nearDeskRef.current) {
+        currentPrompt = 'Architect New Repository';
+      } else if (nearGateRef.current) {
+        currentPrompt = 'Visit Public World';
+      } else if (nearBuilding.b) {
+        currentPrompt = `Enter ${nearBuilding.b.repo.name}`;
+      }
+
+      if (currentPrompt !== lastProximityLabelRef.current) {
+        lastProximityLabelRef.current = currentPrompt;
+        if (activeRef.current) {
+          onInteractionChange?.(currentPrompt);
+        }
+      }
+
       if (nearBuilding.b) {
         drawInteractionPrompt(ctx, cam, vw, vh, nearBuilding.b, 'Enter repository');
       }
@@ -618,7 +693,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [world, active]);
+  }, [world, active, onRiverExit, onInteractionChange]);
 
   return (
     <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>

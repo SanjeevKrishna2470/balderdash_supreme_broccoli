@@ -41,6 +41,11 @@ interface WorldStore {
   reducedEffects: boolean;
   settingsOpen: boolean;
 
+  // Player position synchronization across 2D and 3D
+  playerPosition: { x: number; y: number } | null;
+  playerFacing: { x: number; y: number };
+  setPlayerPosition: (pos: { x: number; y: number }, facing?: { x: number; y: number }) => void;
+
   setViewMode: (v: ViewMode) => void;
   setQualityPreset: (q: QualityPreset) => void;
   setCameraMode: (c: CameraMode) => void;
@@ -81,6 +86,14 @@ export const useWorldStore = create<WorldStore>((set) => ({
   reducedMotion: false,
   reducedEffects: false,
   settingsOpen: false,
+
+  playerPosition: null,
+  playerFacing: { x: 0, y: 1 },
+  setPlayerPosition: (playerPosition, playerFacing) =>
+    set((state) => ({
+      playerPosition,
+      playerFacing: playerFacing ?? state.playerFacing,
+    })),
 
   setViewMode: (viewMode) => set({ viewMode }),
   setQualityPreset: (qualityPreset) => set({ qualityPreset }),

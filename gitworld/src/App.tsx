@@ -12,6 +12,7 @@ import { CodeViewerModal } from './components/CodeViewerModal';
 import { CreateRepoModal } from './components/CreateRepoModal';
 import { CityCanvas, type CityCanvasHandle } from './render/CityCanvas';
 import { City3DCanvas, type City3DCanvasHandle } from './render/City3DCanvas';
+import { ControlsHint } from './components/ControlsHint';
 import { SettingsModal } from './components/SettingsModal';
 import { RepoCanvas, type RepoCanvasHandle } from './render/RepoCanvas';
 import { useWorldStore } from './state/useWorldStore';
@@ -54,6 +55,7 @@ export default function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [repoHoveredId, setRepoHoveredId] = useState<string | null>(null);
   const [repoSelectedId, setRepoSelectedId] = useState<string | null>(null);
+  const [interactionLabel, setInteractionLabel] = useState<string | null>(null);
   const [repoStatus, setRepoStatus] = useState<{ kind: 'idle' | 'loading' | 'error'; message?: string }>({
     kind: 'idle',
   });
@@ -61,6 +63,22 @@ export default function App() {
   const canvasRef = useRef<CityCanvasHandle>(null);
   const canvas3DRef = useRef<City3DCanvasHandle>(null);
   const repoCanvasRef = useRef<RepoCanvasHandle>(null);
+
+  const handleTriggerInteraction = useCallback(() => {
+    if (viewMode === '3d') {
+      canvas3DRef.current?.triggerInteraction();
+    } else {
+      canvasRef.current?.triggerInteraction?.();
+    }
+  }, [viewMode]);
+
+  const handleRecenter = useCallback(() => {
+    if (viewMode === '3d') {
+      canvas3DRef.current?.recenterOnPlayer();
+    } else {
+      canvasRef.current?.recenterOnPlayer?.();
+    }
+  }, [viewMode]);
 
   const handleRepoCreated = useCallback((newRepo: any) => {
     if (!world) return;
@@ -291,6 +309,9 @@ export default function App() {
               onHover={setHoveredId}
               onSelect={(id) => selectBuilding(id)}
               onEnter={enterRepoWorld}
+              onOpenCreateRepo={() => setCreateRepoOpen(true)}
+              onOpenPublicWorld={() => setSearchOpen(true)}
+              onInteractionChange={setInteractionLabel}
               active={screen === 'city' && viewMode === '3d'}
               quality={qualityPreset}
               reducedMotion={reducedMotion}
@@ -316,6 +337,8 @@ export default function App() {
               onSelect={(id) => selectBuilding(id)}
               onEnter={enterRepoWorld}
               onOpenCreateRepo={() => setCreateRepoOpen(true)}
+              onOpenPublicWorld={() => setSearchOpen(true)}
+              onInteractionChange={setInteractionLabel}
               active={screen === 'city' && viewMode === '2d'}
             />
           </div>
@@ -351,7 +374,20 @@ export default function App() {
                 onBrowseCode={(b) => openCodeViewer({ repoFullName: b.repo.fullName })}
               />
 
-              <MobileControls onMove={(dx, dy) => canvasRef.current?.nudgePlayer(dx, dy)} />
+              <ControlsHint
+                interactionLabel={interactionLabel}
+                onTriggerInteraction={handleTriggerInteraction}
+                onRecenter={handleRecenter}
+                viewMode={viewMode}
+              />
+
+              <MobileControls
+                onMove={(dx, dy) =>
+                  viewMode === '3d'
+                    ? canvas3DRef.current?.nudgePlayer(dx, dy)
+                    : canvasRef.current?.nudgePlayer(dx, dy)
+                }
+              />
             </>
           )}
 
