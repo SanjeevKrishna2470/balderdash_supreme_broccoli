@@ -690,6 +690,185 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, vw: number, vh: number
   drawPlayerAvatar(ctx, vw, vh, facing, zoom, null, 0, false, 42);
 }
 
+/**
+ * Draws a Remote Player Avatar with distance-aware Level of Detail (LOD),
+ * interpolated walking motion, identity color, username badge, and active emotes.
+ */
+export function drawRemotePlayerAvatar(
+  ctx: CanvasRenderingContext2D,
+  cam: CameraState,
+  vw: number,
+  vh: number,
+  player: {
+    id: string;
+    username: string;
+    displayName?: string;
+    profileColorSeed: number;
+    position: { x: number; y: number };
+    facing: { x: number; y: number };
+    isWalking: boolean;
+    walkPhase: number;
+  },
+  emote?: { emoteId: string; startedAt: number } | null,
+  chat?: { text: string; sentAt: number } | null,
+  isHovered = false
+) {
+  const p = worldToScreen(cam, vw, vh, player.position.x, player.position.y);
+
+  // Viewport Culling
+  const margin = 60;
+  if (p.x < -margin || p.x > vw + margin || p.y < -margin || p.y > vh + margin) {
+    return;
+  }
+
+  // Calculate distance from screen center (focal point) for LOD
+  const distFromCenter = Math.hypot(p.x - vw / 2, p.y - vh / 2);
+  const isNear = distFromCenter < 360 || isHovered;
+  const isFar = distFromCenter > 750;
+
+  const cloakColors = ['#59ada2', '#4d7fb3', '#948bd0', '#c1694a', '#d9805f', '#5fb0c9', '#ec4899', '#10b981'];
+  const cloakColor = cloakColors[Math.abs(player.profileColorSeed) % cloakColors.length];
+
+  ctx.save();
+
+  // LOD 3: Far representation (subtle identity pulse marker)
+  if (isFar && !isHovered) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5 * cam.zoom, 0, Math.PI * 2);
+    ctx.fillStyle = cloakColor;
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  const s = 13 * cam.zoom;
+  const bob = player.isWalking ? Math.sin(player.walkPhase * 8) * 2.2 * cam.zoom : 0;
+
+  // 1. Ground Shadow
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + s * 0.88, s * 0.9, s * 0.35, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fill();
+
+  // LOD 2: Mid-range representation (simplified silhouette)
+  if (!isNear && !isHovered) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y - s * 0.5, s * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = cloakColor;
+    ctx.fill();
+    ctx.strokeStyle = '#18162b';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  // LOD 1: Near representation (Full character avatar)
+  // Legs / Stride
+  const legSwing = player.isWalking ? Math.sin(player.walkPhase * 8) * 4.5 * cam.zoom : 0;
+  ctx.fillStyle = '#1c1a2e';
+  // Left foot
+  ctx.beginPath();
+  ctx.ellipse(p.x - 3 * cam.zoom, p.y + s * 0.78 + legSwing, 2.6 * cam.zoom, 3.8 * cam.zoom, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Right foot
+  ctx.beginPath();
+  ctx.ellipse(p.x + 3 * cam.zoom, p.y + s * 0.78 - legSwing, 2.6 * cam.zoom, 3.8 * cam.zoom, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Torso / Cloak
+  const torsoY = p.y - s * 0.12 + bob;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 6.5 * cam.zoom, torsoY + 8.5 * cam.zoom);
+  ctx.lineTo(p.x - 5 * cam.zoom, torsoY);
+  ctx.lineTo(p.x + 5 * cam.zoom, torsoY);
+  ctx.lineTo(p.x + 6.5 * cam.zoom, torsoY + 8.5 * cam.zoom);
+  ctx.closePath();
+  ctx.fillStyle = cloakColor;
+  ctx.fill();
+  ctx.strokeStyle = '#232140';
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+
+  // Head
+  const headY = torsoY - 8 * cam.zoom;
+  const headR = 7 * cam.zoom;
+  ctx.beginPath();
+  ctx.arc(p.x, headY, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#f1ead9';
+  ctx.fill();
+  ctx.strokeStyle = '#232140';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Facing Gaze Eyes
+  const eyeOffsetX = player.facing.x * 2.5 * cam.zoom;
+  const eyeOffsetY = player.facing.y * 1.3 * cam.zoom;
+  ctx.fillStyle = '#232140';
+  ctx.beginPath();
+  ctx.arc(p.x + eyeOffsetX - 1.8 * cam.zoom, headY + eyeOffsetY, 1.2 * cam.zoom, 0, Math.PI * 2);
+  ctx.arc(p.x + eyeOffsetX + 1.8 * cam.zoom, headY + eyeOffsetY, 1.2 * cam.zoom, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Username Pill (shown on hover or proximity)
+  const nameY = headY - 14 * cam.zoom;
+  const username = player.displayName || player.username;
+  ctx.font = `600 ${Math.max(9, Math.round(9.5 * cam.zoom))}px Inter, sans-serif`;
+  const nameW = ctx.measureText(username).width;
+
+  ctx.fillStyle = 'rgba(23, 22, 43, 0.88)';
+  ctx.beginPath();
+  ctx.roundRect(p.x - nameW / 2 - 6, nameY - 7, nameW + 12, 14, 4);
+  ctx.fill();
+  ctx.strokeStyle = cloakColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = '#f1ead9';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(username, p.x, nameY);
+
+  // Active Floating Emote
+  if (emote) {
+    const emoteIcons: Record<string, string> = {
+      wave: '👋',
+      point: '👉',
+      follow: '🏃',
+      celebrate: '🎉',
+      curious: '🔍',
+      thanks: '🙏',
+    };
+    const icon = emoteIcons[emote.emoteId] || '👋';
+    const elapsed = Date.now() - emote.startedAt;
+    const rise = Math.min(18, elapsed * 0.008);
+    const emoteY = nameY - 16 * cam.zoom - rise;
+
+    ctx.font = `${Math.max(14, Math.round(16 * cam.zoom))}px sans-serif`;
+    ctx.fillText(icon, p.x, emoteY);
+  }
+
+  // Active Proximity Chat Bubble
+  if (chat) {
+    const chatY = nameY - 26 * cam.zoom;
+    ctx.font = `500 ${Math.max(9, Math.round(9 * cam.zoom))}px Inter, sans-serif`;
+    const chatW = ctx.measureText(chat.text).width;
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - chatW / 2 - 8, chatY - 8, chatW + 16, 16, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(chat.text, p.x, chatY);
+  }
+
+  ctx.restore();
+}
+
 function mix(a: string, b: string, t: number): string {
   const ca = hexToRgb(a);
   const cb = hexToRgb(b);

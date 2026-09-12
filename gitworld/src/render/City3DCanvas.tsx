@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import * as THREE from 'three';
-import type { CityWorldModel } from '../world/cityTypes';
+import type { CityWorldModel, CameraPerspective } from '../world/cityTypes';
 import { createBuilding3D, type Building3DObject } from './three/buildingGeometry';
 import { createVegetationSystem, type VegetationSystem } from './three/vegetationSystem';
 import { createRoadNetwork3D, type RoadNetwork3D } from './three/roadsAndDependencies';
@@ -19,6 +19,8 @@ export interface City3DCanvasHandle {
   resetOverview: () => void;
   recenterOnPlayer: () => void;
   triggerInteraction: () => void;
+  togglePerspective: () => void;
+  getPerspective: () => CameraPerspective;
 }
 
 interface Props {
@@ -30,6 +32,7 @@ interface Props {
   onOpenCreateRepo?: () => void;
   onOpenPublicWorld?: () => void;
   onInteractionChange?: (label: string | null) => void;
+  onPerspectiveChange?: (perspective: CameraPerspective) => void;
   active?: boolean;
   quality?: 'high' | 'balanced' | 'performance';
   reducedMotion?: boolean;
@@ -49,6 +52,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
     onOpenCreateRepo,
     onOpenPublicWorld,
     onInteractionChange,
+    onPerspectiveChange,
     active = true,
     quality = 'balanced',
     reducedMotion = false,
@@ -78,6 +82,12 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
   const followPlayerRef = useRef<boolean>(true);
   const lastInteractionLabelRef = useRef<string | null>(null);
   const lastSyncTimeRef = useRef<number>(0);
+
+  // First-Person POV and Pointer Lock State
+  const perspectiveRef = useRef<CameraPerspective>('orbit');
+  const fpYawRef = useRef<number>(0);
+  const fpPitchRef = useRef<number>(0);
+  const isPointerLockedRef = useRef<boolean>(false);
 
   // Camera Orbit & Pan State
   const camStateRef = useRef({
@@ -157,6 +167,21 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
         }
       }
     },
+    togglePerspective: () => {
+      const next: CameraPerspective = perspectiveRef.current === 'orbit' ? 'first_person' : 'orbit';
+      perspectiveRef.current = next;
+      if (next === 'first_person') {
+        fpYawRef.current = -playerStateRef.current.facing;
+        fpPitchRef.current = 0;
+        canvasRef.current?.requestPointerLock?.();
+      } else {
+        if (document.pointerLockElement) {
+          document.exitPointerLock?.();
+        }
+      }
+      onPerspectiveChange?.(next);
+    },
+    getPerspective: () => perspectiveRef.current,
   }));
 
   // Keyboard and Proximity Interaction Handling
@@ -190,6 +215,24 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
             onOpenPublicWorld();
           }
         }
+      }
+
+      // 'V': Toggle between Orbit and First-Person POV (Minecraft-style)
+      if (key === 'v') {
+        e.preventDefault();
+        const next: CameraPerspective = perspectiveRef.current === 'orbit' ? 'first_person' : 'orbit';
+        perspectiveRef.current = next;
+        if (next === 'first_person') {
+          // Initialize yaw from character facing
+          fpYawRef.current = -playerStateRef.current.facing + Math.PI / 2;
+          fpPitchRef.current = 0;
+          canvasRef.current?.requestPointerLock?.();
+        } else {
+          if (document.pointerLockElement) {
+            document.exitPointerLock?.();
+          }
+        }
+        onPerspectiveChange?.(next);
       }
 
       // Space or R: Recenter camera on player
@@ -349,7 +392,26 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
+    const handlePointerLockChange = () => {
+      const isLocked = document.pointerLockElement === canvas;
+      isPointerLockedRef.current = isLocked;
+      if (!isLocked && perspectiveRef.current === 'first_person') {
+        // Pointer was unlocked (e.g. user pressed Esc)
+      }
+    };
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+
     const onPointerMove = (e: MouseEvent) => {
+      // First-person mouse look when pointer is locked
+      if (perspectiveRef.current === 'first_person' && document.pointerLockElement === canvas) {
+        const mouseSensitivity = 0.0024;
+        fpYawRef.current -= e.movementX * mouseSensitivity;
+        fpPitchRef.current -= e.movementY * mouseSensitivity;
+        // Clamp pitch between -85 deg and +85 deg (Minecraft style)
+        fpPitchRef.current = Math.max(-Math.PI * 0.46, Math.min(Math.PI * 0.46, fpPitchRef.current));
+        return;
+      }
+
       const rect = canvas.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -527,13 +589,40 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
 
       // 1. Gather Player Movement Input
       const keys = keysRef.current;
+      let rawDx = 0;
+      let rawDy = 0;
+
+      if (keys.has('w') || keys.has('arrowup')) rawDy -= 1;
+      if (keys.has('s') || keys.has('arrowdown')) rawDy += 1;
+      if (keys.has('a') || keys.has('arrowleft')) rawDx -= 1;
+      if (keys.has('d') || keys.has('arrowright')) rawDx += 1;
+
       let moveDx = 0;
       let moveDy = 0;
 
-      if (keys.has('w') || keys.has('arrowup')) moveDy -= 1;
-      if (keys.has('s') || keys.has('arrowdown')) moveDy += 1;
-      if (keys.has('a') || keys.has('arrowleft')) moveDx -= 1;
-      if (keys.has('d') || keys.has('arrowright')) moveDx += 1;
+      if (perspectiveRef.current === 'first_person') {
+        // Minecraft-style First Person Movement:
+        // W/S moves forward/back along gaze yaw
+        // A/D strafes left/right perpendicular to gaze yaw
+        const yaw = fpYawRef.current;
+        // In 2D coords: +X is right, +Y is down. In 3D: X is right, Z is down (y * SCALE).
+        // Forward vector in 2D: dx = sin(yaw), dy = -cos(yaw)
+        // Right strafe vector in 2D: dx = cos(yaw), dy = sin(yaw)
+        const fwdX = Math.sin(yaw);
+        const fwdY = -Math.cos(yaw);
+        const rightX = Math.cos(yaw);
+        const rightY = Math.sin(yaw);
+
+        // rawDy is negative for W (-1), positive for S (+1)
+        const forwardInput = -rawDy; // +1 when pressing W
+        const strafeInput = rawDx;   // +1 when pressing D, -1 when pressing A
+
+        moveDx = fwdX * forwardInput + rightX * strafeInput;
+        moveDy = fwdY * forwardInput + rightY * strafeInput;
+      } else {
+        moveDx = rawDx;
+        moveDy = rawDy;
+      }
 
       moveDx += nudgeRef.current.x;
       moveDy += nudgeRef.current.y;
@@ -552,6 +641,14 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       // 3. Update 3D Character Presentation
       avatar.update(nextPlayerState, time);
 
+      // Hide character avatar mesh when in first-person mode
+      if (perspectiveRef.current === 'first_person') {
+        avatar.group.visible = false;
+        avatar.destinationMarker.visible = false;
+      } else {
+        avatar.group.visible = true;
+      }
+
       // 4. Proximity Interaction Feedback
       const currentInteractionLabel = nextPlayerState.activeInteraction?.label ?? null;
       if (currentInteractionLabel !== lastInteractionLabelRef.current) {
@@ -565,29 +662,57 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
         useWorldStore.getState().setPlayerPosition(nextPlayerState.position, nextPlayerState.facing);
       }
 
-      // 6. Camera Damping, Orbit & Third-Person Follow
-      const cam = camStateRef.current;
+      // 6. Camera Damping, Orbit & First-Person / Third-Person Follow
+      const pX = nextPlayerState.position.x * SCALE;
+      const pZ = nextPlayerState.position.y * SCALE;
 
-      if (followPlayerRef.current) {
-        const pX = nextPlayerState.position.x * SCALE;
-        const pZ = nextPlayerState.position.y * SCALE;
-        // Comfortable velocity look-ahead
-        const lookAheadX = (nextPlayerState.velocity.x / 230) * 1.5;
-        const lookAheadZ = (nextPlayerState.velocity.y / 230) * 1.5;
-        cam.targetLookTarget.set(pX + lookAheadX, 1.2, pZ + lookAheadZ);
+      if (perspectiveRef.current === 'first_person') {
+        // Minecraft-style First Person Camera:
+        // Position at eye level (1.65m) with subtle walking head bobbing
+        const isMoving = nextPlayerState.isMoving;
+        const bobFrequency = 9.0;
+        const bobAmountY = isMoving ? Math.sin(time * bobFrequency) * 0.045 : 0;
+        const bobAmountX = isMoving ? Math.cos(time * bobFrequency * 0.5) * 0.025 : 0;
+
+        const eyeHeight = 1.65 + bobAmountY;
+        const camPosX = pX + bobAmountX;
+        const camPosZ = pZ;
+
+        camera.position.set(camPosX, eyeHeight, camPosZ);
+
+        // Direction from fpYaw and fpPitch
+        const yaw = fpYawRef.current;
+        const pitch = fpPitchRef.current;
+
+        const dirX = Math.sin(yaw) * Math.cos(pitch);
+        const dirY = Math.sin(pitch);
+        const dirZ = -Math.cos(yaw) * Math.cos(pitch);
+
+        const lookAtTarget = new THREE.Vector3(camPosX + dirX, eyeHeight + dirY, camPosZ + dirZ);
+        camera.lookAt(lookAtTarget);
+      } else {
+        // Orbit / Third-Person Follow Mode
+        const cam = camStateRef.current;
+
+        if (followPlayerRef.current) {
+          // Comfortable velocity look-ahead
+          const lookAheadX = (nextPlayerState.velocity.x / 230) * 1.5;
+          const lookAheadZ = (nextPlayerState.velocity.y / 230) * 1.5;
+          cam.targetLookTarget.set(pX + lookAheadX, 1.2, pZ + lookAheadZ);
+        }
+
+        const lerpFactor = reducedMotion ? 1 : Math.min(1, delta * 7);
+
+        cam.spherical.radius += (cam.targetSpherical.radius - cam.spherical.radius) * lerpFactor;
+        cam.spherical.theta += (cam.targetSpherical.theta - cam.spherical.theta) * lerpFactor;
+        cam.spherical.phi += (cam.targetSpherical.phi - cam.spherical.phi) * lerpFactor;
+
+        cam.lookTarget.lerp(cam.targetLookTarget, lerpFactor);
+
+        // Compute camera position from spherical coordinates relative to lookTarget
+        camera.position.setFromSpherical(cam.spherical).add(cam.lookTarget);
+        camera.lookAt(cam.lookTarget);
       }
-
-      const lerpFactor = reducedMotion ? 1 : Math.min(1, delta * 7);
-
-      cam.spherical.radius += (cam.targetSpherical.radius - cam.spherical.radius) * lerpFactor;
-      cam.spherical.theta += (cam.targetSpherical.theta - cam.spherical.theta) * lerpFactor;
-      cam.spherical.phi += (cam.targetSpherical.phi - cam.spherical.phi) * lerpFactor;
-
-      cam.lookTarget.lerp(cam.targetLookTarget, lerpFactor);
-
-      // Compute camera position from spherical coordinates relative to lookTarget
-      camera.position.setFromSpherical(cam.spherical).add(cam.lookTarget);
-      camera.lookAt(cam.lookTarget);
 
       // 7. Update World Subsystems
       bMap.forEach((obj) => obj.update(time));
@@ -620,6 +745,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
         obj.highlightMesh.geometry.dispose();
       });
 
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
       renderer.dispose();
     };
   }, [world, active, quality, reducedMotion, cameraMode, onEnter, onHover, onSelect, onInteractionChange, onWebGLUnavailable]);

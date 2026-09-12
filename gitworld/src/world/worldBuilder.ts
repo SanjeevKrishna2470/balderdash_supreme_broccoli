@@ -3,6 +3,7 @@ import { seededRandom, randRange, randInt, hashSeed } from './rng';
 import { getLanguageStyle } from './languageStyles';
 import { computeImportance } from './importance';
 import { generateBuildingVisualProfile } from './visualProfile';
+import { buildTrendingStreetWorld } from './trendingWorldBuilder';
 import type {
   CityWorldModel,
   District,
@@ -451,9 +452,11 @@ export function buildCity(
   };
 
   const publicRoad: PublicRoadFeature = {
-    id: 'road-public-realm',
+    id: 'road-trending-street',
     gatePoint: { x: 380, y: arrivalPlaza.y },
-    label: 'Open Source Road → Public Realm',
+    label: 'Trending Street — Frontier Boulevard',
+    subtitle: 'Where the hot repos roll in',
+    activeVisitorsCount: 5,
   };
 
   // Connect Arrival Plaza to River Bridge (Southbound Main Road)
@@ -605,6 +608,8 @@ export function buildCity(
     }
   }
 
+  const trendingStreetWorld = buildTrendingStreetWorld([]);
+
   return {
     seed,
     user: userWithSeed,
@@ -622,6 +627,7 @@ export function buildCity(
     boat,
     constructionDistrict,
     publicRoad,
+    trendingStreet: trendingStreetWorld,
     safeShorePoint,
   };
 }

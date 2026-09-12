@@ -1,0 +1,114 @@
+.multiplayer-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(18, 16, 30, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 5px 8px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  z-index: 100;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.multiplayer-bar:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+
+.multiplayer-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+}
+
+.multiplayer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.multiplayer-dot--online {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.multiplayer-dot--connecting {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: pulse-dot 1.2s infinite ease-in-out;
+}
+
+.multiplayer-dot--offline {
+  background: #6b7280;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.multiplayer-status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.multiplayer-badge {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.multiplayer-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.multiplayer-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.multiplayer-btn--active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.multiplayer-btn-icon {
+  font-size: 13px;
+}
+
+.multiplayer-kbd {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 1px 4px;
+  color: #94a3b8;
+}

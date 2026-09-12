@@ -1,5 +1,6 @@
 import type { RepositoryModel } from '../types';
 import type { LanguageStyle } from './languageStyles';
+import type { TrendingStreetWorld } from './trendingTypes';
 
 /**
  * The shared `types.ts` contract describes a tile-grid world (terrain
@@ -44,6 +45,7 @@ import type { BuildingVisualProfile } from './visualProfile';
 export type ViewMode = '3d' | '2d';
 export type QualityPreset = 'high' | 'balanced' | 'performance';
 export type CameraMode = 'orbit' | 'walk';
+export type CameraPerspective = 'orbit' | 'first_person';
 
 export interface CityBuilding {
   id: string;
@@ -152,11 +154,15 @@ export interface ConstructionDistrict {
   }>;
 }
 
-export interface PublicRoadFeature {
+export interface TrendingStreetFeature {
   id: string;
   gatePoint: { x: number; y: number };
   label: string;
+  subtitle?: string;
+  activeVisitorsCount?: number;
 }
+
+export type PublicRoadFeature = TrendingStreetFeature;
 
 export interface CityWorldModel {
   seed: string;
@@ -183,6 +189,7 @@ export interface CityWorldModel {
   bridge?: BridgeFeature;
   boat?: BoatFeature;
   constructionDistrict?: ConstructionDistrict;
-  publicRoad?: PublicRoadFeature;
+  publicRoad?: TrendingStreetFeature;
+  trendingStreet?: TrendingStreetWorld | TrendingStreetFeature;
   safeShorePoint?: { x: number; y: number };
 }

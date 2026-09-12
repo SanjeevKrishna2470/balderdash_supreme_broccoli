@@ -62,6 +62,16 @@ export function ControlsHint({
               <span className="controls-sublabel">Navigate</span>
             </span>
 
+            {viewMode === '3d' && (
+              <>
+                <span className="controls-sep">&bull;</span>
+                <span className="controls-group">
+                  <kbd className="controls-kbd">V</kbd>
+                  <span className="controls-label">First-Person POV</span>
+                </span>
+              </>
+            )}
+
             {viewMode === '3d' && onRecenter && (
               <>
                 <span className="controls-sep">&bull;</span>

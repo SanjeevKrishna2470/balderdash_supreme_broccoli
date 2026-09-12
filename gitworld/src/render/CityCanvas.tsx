@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 
 import type { CityWorldModel, CityBuilding } from '../world/cityTypes';
 import { resolveMovement, PLAYER_CONFIG } from '../world/playerController';
 import { useWorldStore } from '../state/useWorldStore';
+import { useMultiplayerStore } from '../state/useMultiplayerStore';
 import {
   createCamera,
   stepCamera,
@@ -22,6 +23,7 @@ import {
   drawBuildingLabel,
   drawAvatar,
   drawPlayerAvatar,
+  drawRemotePlayerAvatar,
   drawRiver,
   drawBridge,
   drawBoat,
@@ -29,6 +31,18 @@ import {
   drawPublicWorldGate,
   drawWaterSplash,
 } from './draw';
+import {
+  drawTrendingStreetEntranceArch,
+  drawTrendingStorefront,
+  drawLandmarkPavilion,
+  drawCyberWaterTower,
+  drawBoardwalk,
+} from './trendingDraw';
+import type { TrendingStorefrontBuilding, TrendingStreetWorld } from '../world/trendingTypes';
+
+function isTrendingStreetWorld(val: unknown): val is TrendingStreetWorld {
+  return typeof val === 'object' && val !== null && 'storefronts' in val && Array.isArray((val as TrendingStreetWorld).storefronts);
+}
 
 export interface CityCanvasHandle {
   flyToBuilding: (id: string) => void;
@@ -55,6 +69,7 @@ interface Props {
   onOpenPublicWorld?: () => void;
   onRiverExit?: () => void;
   onInteractionChange?: (label: string | null) => void;
+  onSelectStorefront?: (storefront: TrendingStorefrontBuilding) => void;
 }
 
 const PLAYER_SPEED = 220; // world units / second
@@ -72,6 +87,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
     onOpenPublicWorld,
     onRiverExit,
     onInteractionChange,
+    onSelectStorefront,
   },
   ref
 ) {
@@ -89,6 +105,9 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
   const hoveredIdRef = useRef<string | null>(null);
   const selectedIdRef = useRef<string | null>(selectedBuildingId);
   const nearBuildingRef = useRef<CityBuilding | null>(null);
+  const nearStorefrontRef = useRef<TrendingStorefrontBuilding | null>(null);
+  const hoveredStorefrontRef = useRef<TrendingStorefrontBuilding | null>(null);
+  const lastSnapshotSendTimeRef = useRef<number>(0);
 
   // World extension state refs (AGENT.md Sections 7, 8, 9)
   const boatRef = useRef(world.boat ? { ...world.boat } : null);
@@ -178,12 +197,18 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
       return;
     }
 
-    // 4. Enter repository interior
+    // 4. Trending Street storefront inspection
+    if (nearStorefrontRef.current && onSelectStorefront) {
+      onSelectStorefront(nearStorefrontRef.current);
+      return;
+    }
+
+    // 5. Enter repository interior
     if (nearBuildingRef.current) {
       onEnter(nearBuildingRef.current.id);
       return;
     }
-  }, [onEnter, onOpenCreateRepo, onOpenPublicWorld]);
+  }, [onEnter, onOpenCreateRepo, onOpenPublicWorld, onSelectStorefront]);
 
   useImperativeHandle(ref, () => ({
     flyToBuilding(id: string) {
@@ -309,6 +334,24 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
       const { vw, vh } = sizeRef.current;
       const world_ = screenToWorld(camRef.current, vw, vh, sx, sy);
       mouseWorldRef.current = world_;
+
+      // Check trending street storefronts
+      let hitStorefront: TrendingStorefrontBuilding | null = null;
+      if (isTrendingStreetWorld(world.trendingStreet)) {
+        for (const sf of world.trendingStreet.storefronts) {
+          if (
+            world_.x >= sf.x - sf.width / 2 &&
+            world_.x <= sf.x + sf.width / 2 &&
+            world_.y >= sf.y - sf.height / 2 &&
+            world_.y <= sf.y + sf.height / 2
+          ) {
+            hitStorefront = sf;
+            break;
+          }
+        }
+      }
+      hoveredStorefrontRef.current = hitStorefront;
+
       const hit = findBuildingAt(world_.x, world_.y);
       const id = hit?.id ?? null;
       if (id !== hoveredIdRef.current) {
@@ -325,7 +368,9 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
     const onUp = (e: MouseEvent) => {
       if (!activeRef.current) return;
       if (!dragRef.current.moved) {
-        if (hoveredIdRef.current) {
+        if (hoveredStorefrontRef.current && onSelectStorefront) {
+          onSelectStorefront(hoveredStorefrontRef.current);
+        } else if (hoveredIdRef.current) {
           onSelect(hoveredIdRef.current);
         } else {
           // Click-to-move accessibility & exploration
@@ -500,7 +545,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         if (splashRef.current.progress >= 1) splashRef.current = null;
       }
 
-      // 4. Infrastructure Proximity Detection
+      // 4. Infrastructure & District Proximity Detection
       if (boatRef.current) {
         const dTown = Math.hypot(playerRef.current.x - boatRef.current.dockTown.x, playerRef.current.y - boatRef.current.dockTown.y);
         const dConst = Math.hypot(playerRef.current.x - boatRef.current.dockConstruction.x, playerRef.current.y - boatRef.current.dockConstruction.y);
@@ -527,6 +572,36 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
           playerRef.current.y - world.publicRoad.gatePoint.y
         );
         nearGateRef.current = dGate < 60;
+      }
+
+      // Check proximity to Trending Street Storefronts
+      let closestStorefront: TrendingStorefrontBuilding | null = null;
+      let closestSfDist = Infinity;
+      if (isTrendingStreetWorld(world.trendingStreet)) {
+        for (const sf of world.trendingStreet.storefronts) {
+          const d = Math.hypot(playerRef.current.x - sf.x, playerRef.current.y - sf.y);
+          if (d < 70 && d < closestSfDist) {
+            closestSfDist = d;
+            closestStorefront = sf;
+          }
+        }
+      }
+      nearStorefrontRef.current = closestStorefront;
+
+      // Broadcast Player Snapshot to Multiplayer Store / Server (throttled ~15Hz / 66ms)
+      if (ts - lastSnapshotSendTimeRef.current > 66) {
+        lastSnapshotSendTimeRef.current = ts;
+        const mpStore = useMultiplayerStore.getState();
+        if (mpStore.connectionState === 'connected') {
+          mpStore.sendSnapshot({
+            position: { x: playerRef.current.x, y: playerRef.current.y },
+            velocity: isMoving ? { x: (dx / (Math.hypot(dx, dy) || 1)) * PLAYER_SPEED, y: (dy / (Math.hypot(dx, dy) || 1)) * PLAYER_SPEED } : { x: 0, y: 0 },
+            facing: facingRef.current,
+            isWalking: isWalkingRef.current,
+            walkPhase: walkPhaseRef.current,
+            timestamp: Date.now(),
+          });
+        }
       }
 
       // 5. Soft building collision separation
@@ -565,6 +640,13 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         drawDistrict(ctx, cam, vw, vh, d);
       }
 
+      // Draw Trending Street Boardwalks (under storefronts)
+      if (isTrendingStreetWorld(world.trendingStreet)) {
+        for (const bw of world.trendingStreet.boardwalks) {
+          drawBoardwalk(ctx, cam, vw, vh, bw);
+        }
+      }
+
       // Draw Construction District
       if (world.constructionDistrict) {
         drawConstructionDistrict(ctx, cam, vw, vh, world.constructionDistrict, nearDeskRef.current, ts);
@@ -590,6 +672,12 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         drawPublicWorldGate(ctx, cam, vw, vh, world.publicRoad, nearGateRef.current);
       }
 
+      // Draw Trending Street Entrance Arch
+      if (isTrendingStreetWorld(world.trendingStreet)) {
+        const isNearArch = Math.hypot(playerRef.current.x - world.trendingStreet.entrancePoint.x, playerRef.current.y - world.trendingStreet.entrancePoint.y) < 80;
+        drawTrendingStreetEntranceArch(ctx, cam, vw, vh, world.trendingStreet.entrancePoint, isNearArch, ts);
+      }
+
       // Draw Water Splash
       if (splashRef.current) {
         drawWaterSplash(ctx, cam, vw, vh, splashRef.current);
@@ -599,6 +687,25 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
       if (world.environmentProps) {
         for (const prop of world.environmentProps) {
           drawEnvironmentProp(ctx, cam, vw, vh, prop, ts);
+        }
+      }
+
+      // Draw Trending Street Landmarks (Water Tower & Landmark Saloon)
+      if (isTrendingStreetWorld(world.trendingStreet)) {
+        if (world.trendingStreet.waterTower) {
+          drawCyberWaterTower(ctx, cam, vw, vh, world.trendingStreet.waterTower, ts);
+        }
+        if (world.trendingStreet.landmarkPavilion) {
+          drawLandmarkPavilion(ctx, cam, vw, vh, world.trendingStreet.landmarkPavilion, ts);
+        }
+        // Draw Trending Storefronts
+        for (const sf of world.trendingStreet.storefronts) {
+          if (!visible(sf.x, sf.y)) continue;
+          drawTrendingStorefront(ctx, cam, vw, vh, sf, {
+            isHovered: hoveredStorefrontRef.current?.id === sf.id || nearStorefrontRef.current?.id === sf.id,
+            isSelected: false,
+            timeMs: ts,
+          });
         }
       }
 
@@ -640,7 +747,38 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         drawAvatar(ctx, cam, vw, vh, a, ts);
       }
 
-      // Contextual Interaction Prompt when in range of building
+      // Draw Remote Multiplayer Players
+      const mpState = useMultiplayerStore.getState();
+      const nowMs = performance.now();
+      mpState.remotePlayers.forEach((remotePlayer, odId) => {
+        const interpolator = mpState.interpolators.get(odId);
+        const interpolated = interpolator?.getInterpolatedState(nowMs) ?? {
+          position: remotePlayer.position,
+          facing: remotePlayer.facing,
+          isWalking: remotePlayer.isWalking,
+          walkPhase: remotePlayer.walkPhase,
+        };
+
+        const activeEmote = mpState.activeEmotes.get(odId);
+        // Find recent proximity chat for this player (< 4.5s ago)
+        const recentChat = mpState.chatMessages
+          .filter((m) => m.senderId === odId && nowMs - m.sentAt < 4500)
+          .slice(-1)[0]?.text ?? null;
+
+        drawRemotePlayerAvatar(
+          ctx,
+          cam,
+          vw,
+          vh,
+          remotePlayer,
+          interpolated,
+          activeEmote?.emoteId ?? null,
+          recentChat,
+          ts
+        );
+      });
+
+      // Contextual Interaction Prompt when in range of building or storefront
       let currentPrompt: string | null = null;
       if (nearDockRef.current && boatRef.current && boatRef.current.state !== 'crossing') {
         currentPrompt = 'Board Ferry Boat';
@@ -648,6 +786,8 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         currentPrompt = 'Architect New Repository';
       } else if (nearGateRef.current) {
         currentPrompt = 'Visit Public World';
+      } else if (nearStorefrontRef.current) {
+        currentPrompt = `Inspect ${nearStorefrontRef.current.manifest.fullName}`;
       } else if (nearBuilding.b) {
         currentPrompt = `Enter ${nearBuilding.b.repo.name}`;
       }

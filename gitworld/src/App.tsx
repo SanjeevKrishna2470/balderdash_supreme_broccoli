@@ -15,13 +15,19 @@ import { City3DCanvas, type City3DCanvasHandle } from './render/City3DCanvas';
 import { ControlsHint } from './components/ControlsHint';
 import { SettingsModal } from './components/SettingsModal';
 import { RepoCanvas, type RepoCanvasHandle } from './render/RepoCanvas';
+import { MultiplayerBar } from './components/MultiplayerBar';
+import { EmotePicker } from './components/EmotePicker';
+import { ProximityChat } from './components/ProximityChat';
+import { TrendingStorefrontPanel } from './components/TrendingStorefrontPanel';
 import { useWorldStore } from './state/useWorldStore';
+import { useMultiplayerStore } from './state/useMultiplayerStore';
 import { buildCity } from './world/worldBuilder';
 import { buildRepoWorld } from './world/repoWorldBuilder';
 import { fetchRepoTree } from './world/repoApi';
 import { getDemoRepos, getDemoUser } from './world/mockRepos';
 import { fetchSession, beginGithubLogin, beginPrivateAccess, fetchUserByUsername, logout, setAuthToken } from './world/api';
-import type { CityBuilding } from './world/cityTypes';
+import type { CityBuilding, CameraPerspective } from './world/cityTypes';
+import type { TrendingStorefrontBuilding } from './world/trendingTypes';
 
 export default function App() {
   const screen = useWorldStore((s) => s.screen);
@@ -56,6 +62,7 @@ export default function App() {
   const [repoHoveredId, setRepoHoveredId] = useState<string | null>(null);
   const [repoSelectedId, setRepoSelectedId] = useState<string | null>(null);
   const [interactionLabel, setInteractionLabel] = useState<string | null>(null);
+  const [cameraPerspective, setCameraPerspective] = useState<CameraPerspective>('orbit');
   const [repoStatus, setRepoStatus] = useState<{ kind: 'idle' | 'loading' | 'error'; message?: string }>({
     kind: 'idle',
   });
@@ -63,6 +70,39 @@ export default function App() {
   const canvasRef = useRef<CityCanvasHandle>(null);
   const canvas3DRef = useRef<City3DCanvasHandle>(null);
   const repoCanvasRef = useRef<RepoCanvasHandle>(null);
+
+  // Initialize multiplayer transport when world is active
+  useEffect(() => {
+    if (!world || (screen !== 'city' && screen !== 'repo')) return;
+    const mp = useMultiplayerStore.getState();
+    const username = world.user.username || 'developer';
+    const displayName = world.user.displayName || username;
+    const avatarUrl = world.user.avatarUrl;
+    const profileColorSeed = world.user.profileColorSeed ?? 42;
+
+    mp.initTransport(
+      {
+        playerId: `usr-${username}`,
+        username,
+        displayName,
+        avatarUrl,
+        profileColorSeed,
+      },
+      true // prefer WebSocket with graceful fallback to autonomous simulation
+    );
+
+    return () => {
+      // Don't eagerly disconnect on quick hot reloads
+    };
+  }, [world, screen]);
+
+  const handleTogglePerspective = useCallback(() => {
+    canvas3DRef.current?.togglePerspective();
+  }, []);
+
+  const handleSelectStorefront = useCallback((storefront: TrendingStorefrontBuilding) => {
+    useMultiplayerStore.getState().selectStorefront(storefront);
+  }, []);
 
   const handleTriggerInteraction = useCallback(() => {
     if (viewMode === '3d') {
@@ -312,6 +352,7 @@ export default function App() {
               onOpenCreateRepo={() => setCreateRepoOpen(true)}
               onOpenPublicWorld={() => setSearchOpen(true)}
               onInteractionChange={setInteractionLabel}
+              onPerspectiveChange={setCameraPerspective}
               active={screen === 'city' && viewMode === '3d'}
               quality={qualityPreset}
               reducedMotion={reducedMotion}
@@ -339,6 +380,7 @@ export default function App() {
               onOpenCreateRepo={() => setCreateRepoOpen(true)}
               onOpenPublicWorld={() => setSearchOpen(true)}
               onInteractionChange={setInteractionLabel}
+              onSelectStorefront={handleSelectStorefront}
               active={screen === 'city' && viewMode === '2d'}
             />
           </div>
@@ -357,6 +399,43 @@ export default function App() {
                 onLogout={source === 'live' ? handleLogout : undefined}
                 onLeaveRealm={source === 'public' ? () => useWorldStore.getState().logout() : undefined}
                 onEnablePrivate={source === 'live' ? beginPrivateAccess : undefined}
+              />
+
+              {/* Multiplayer Presence, Controls & Perspective Switcher */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 72,
+                  right: 20,
+                  zIndex: 40,
+                }}
+              >
+                <MultiplayerBar
+                  viewMode={viewMode}
+                  perspective={cameraPerspective}
+                  onTogglePerspective={handleTogglePerspective}
+                />
+              </div>
+
+              {/* Emote Picker & Proximity Chat Overlays */}
+              <EmotePicker />
+              <ProximityChat />
+
+              {/* Trending Street Storefront Inspection Panel */}
+              <TrendingStorefrontPanel
+                onEnterRepo={async (fullName) => {
+                  try {
+                    const [owner, name] = fullName.split('/');
+                    const tree = await fetchRepoTree(owner, name);
+                    const repoWorld = buildRepoWorld(tree);
+                    enterRepo(repoWorld, `sf-${fullName}`);
+                  } catch (err) {
+                    setRepoStatus({
+                      kind: 'error',
+                      message: err instanceof Error ? err.message : 'Could not open trending repository.',
+                    });
+                  }
+                }}
               />
 
               {searchOpen && (

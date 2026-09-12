@@ -1,3 +1,4 @@
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
@@ -7,10 +8,13 @@ import { worldRouter } from './routes/world';
 import { reposRouter } from './routes/repos';
 import { userRouter } from './routes/user';
 import { settingsRouter } from './routes/settings';
-
 import { tokenAuthMiddleware } from './middleware/tokenAuth';
+import { RealtimeSessionServer } from './services/realtimeServer';
+import { TrendingService } from './services/trendingService';
 
 const app = express();
+const httpServer = http.createServer(app);
+new RealtimeSessionServer(httpServer);
 
 // Trust proxy for secure cookies in production/reverse proxies
 app.set('trust proxy', 1);
@@ -79,15 +83,30 @@ app.use('/api/user', userRouter);
 // Game Settings & Preferences API
 app.use('/api/settings', settingsRouter);
 
+// Trending Repositories API (Trending Street)
+app.get('/api/trending', async (_req, res) => {
+  try {
+    const manifests = await TrendingService.getTrendingManifests();
+    return res.json(manifests);
+  } catch (err: any) {
+    return res.status(500).json({
+      error: 'Failed to fetch trending manifests',
+      message: err?.message || 'Internal Server Error',
+    });
+  }
+});
+
 // Start server
-app.listen(config.port, () => {
+httpServer.listen(config.port, () => {
   console.log(`🏰 GitWorld Backend Server running on http://localhost:${config.port}`);
+  console.log(`📡 Realtime Multiplayer WebSocket listening on ws://localhost:${config.port}/ws`);
   console.log(`🛡️  Auth endpoints ready:`);
   console.log(`   - Login:          http://localhost:${config.port}/api/auth/github`);
   console.log(`   - Mock Login:     http://localhost:${config.port}/api/auth/mock-login`);
   console.log(`   - Session/Me:     http://localhost:${config.port}/api/auth/me`);
   console.log(`   - World API:      http://localhost:${config.port}/api/world`);
   console.log(`   - Public Realm:   http://localhost:${config.port}/api/world/:username`);
+  console.log(`   - Trending Street:http://localhost:${config.port}/api/trending`);
   console.log(`   - Repos/Files:    http://localhost:${config.port}/api/repos`);
   console.log(`   - RPG Profile:    http://localhost:${config.port}/api/user/profile`);
   console.log(`   - Settings API:   http://localhost:${config.port}/api/settings`);
