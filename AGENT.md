@@ -1,1164 +1,838 @@
-# Claude Build Prompt — GitWorld World Extensions
+# Claude Build Prompt — GitWorld 3D
 
-## Scope
+## Version 2 Product Upgrade
 
-You are extending **GitWorld**, an application that transforms GitHub activity into an explorable world. This prompt combines all non-3D world-extension features into one cohesive build:
+You are a senior product designer, 3D creative technologist, and full-stack engineer. You are extending **GitWorld**, an application that transforms a user’s GitHub account into an explorable city, into a polished **3D architectural world**.
 
-1. A proper personalized avatar for the authenticated user.
-2. A spacious small-town layout with roads, paths, districts, entrances, and landmarks.
-3. Repository buildings whose size and character depend on real project signals.
-4. Enterable repository worlds generated from actual repository structure and metadata.
-5. A shared world where users can travel to other people’s public, opt-in repositories.
-6. A river boundary with bridge and boat crossing routes.
-7. A construction district where users can create a real GitHub repository.
-8. A river exit mechanic that returns users to a safe location when they intentionally jump into the river.
+Version 1 established the core metaphor: repositories become buildings, organizations become districts, contributors become people, activity becomes visible life, issues become warning markers, pull requests become construction, forks become satellite buildings, and dependencies become roads.
 
-This is **separate from the GitWorld 3D upgrade**. Do not make the implementation depend on Three.js, WebGL, or fully 3D rendering. Build for the existing 2D or 2.5D world and keep the data model compatible with a future 3D renderer.
+Version 2 must make those buildings genuinely explorable in 3D. This is not a simple “add three-dimensional cubes” pass. It is a visual and interaction upgrade that should make the user feel as if they are walking through a living architectural model of their software history.
 
-The core product principle is:
+The final result should feel like a premium interactive product and a hackathon-winning experience. It must be visually impressive within seconds, but it must also be understandable, responsive, stable, and useful.
 
-> **The user should feel like they are walking through their own software town, visiting other developers’ worlds, entering repositories, and starting new projects in a physical place.**
-
-Do not create a dashboard with decorative game elements. Build a world whose layout, buildings, paths, interiors, and interactions explain the software behind it.
+> **Build a city that happens to be made from GitHub, not a data dashboard wearing 3D graphics.**
 
 ---
 
-## Product Story
+## Product Objective
 
-The user begins in a personal town generated from their GitHub account.
+Create a 3D view in which the user can understand their GitHub account spatially and architecturally:
 
-Their avatar walks through a spacious neighborhood where repositories have room to breathe. Roads connect districts and buildings. Larger or more important projects occupy larger plots. Active projects feel alive; dormant projects feel quiet but remain part of the user’s history.
+- A repository is not merely a labeled box. It is a distinct building with scale, silhouette, material, condition, and activity.
+- Stars influence prominence and architectural prestige.
+- Repository size influences physical mass without allowing one repository to overwhelm the entire city.
+- Language influences architectural character, color, facade treatment, and roof geometry.
+- Commit recency influences visible life, lighting, animation, and environmental condition.
+- Organizations form districts with shared public spaces, signage, terrain, and color identity.
+- Contributors appear as small agents near active projects.
+- Issues look like visible problems in the building or surrounding site.
+- Pull requests appear as active construction.
+- Forks become smaller buildings or additions nearby.
+- Dependencies become roads, bridges, paths, or illuminated connections.
 
-When the user approaches a repository, they can enter it. The repository becomes a second, smaller world whose neighborhoods and buildings are generated from the actual codebase structure.
+The central emotional arc remains:
 
-At the edge of the town, a road leads to a river. A bridge and a boat cross the river into a construction district where the user can create a real GitHub repository. The creation flow should feel like breaking ground on a new project.
-
-Other roads lead toward a shared public world. The user can travel far enough to discover public, opt-in repositories and other developers’ GitWorlds. Those worlds must be privacy-safe, spatially coherent, and loaded progressively rather than rendered as one infinite map.
-
-The experience should communicate:
-
-> **GitWorld does not only visualize what you have built. It gives you a place to explore what you built, visit what others built, and begin building what comes next.**
+1. “Wait… this is my GitHub?”
+2. “That building is my biggest project?”
+3. “I remember this old abandoned structure.”
+4. “Those roads are my dependencies.”
+5. “I want to walk through the rest of my city.”
 
 ---
 
-## Non-Negotiable Quality Bar
+## What to Build
 
-The result should feel like a finalist-level hackathon product rather than a prototype.
+Implement a 3D city mode that can be entered from the existing GitWorld experience.
 
-The world must have:
+The product should support two complementary views:
 
-- A recognizable player avatar.
-- Comfortable walking scale.
-- Spacious, stable town layouts.
-- Roads and paths that lead somewhere meaningful.
-- Clear district structure.
-- Distinct repository entrances.
-- Smooth transitions between town, repository, public world, and construction district.
-- A repository interior that feels spatial rather than like a file browser.
-- Strong loading, error, empty, permission, and rate-limit states.
-- A compelling demo mode without GitHub credentials.
-- Accessible alternatives to canvas-only navigation.
-- Privacy-safe behavior for private repositories and source code.
+### 3D Explore Mode
+
+This is the hero experience for Version 2. The user can orbit, pan, zoom, and optionally walk through the world. The camera should support a polished isometric or low-angle perspective by default, with smooth transitions between overview and close inspection.
+
+### 2D Map Mode
+
+Preserve the existing 2D mode as a fast map and navigation view. The user should be able to switch between 2D and 3D without losing their selected repository, camera target, or current location.
+
+The mode switch should feel like changing the city’s presentation layer rather than navigating to a separate application.
+
+Do not remove or regress the original 2D city until the 3D view is stable.
+
+---
+
+## Non-Negotiable Experience Quality
+
+This is a hackathon-quality product, not a technical WebGL demonstration.
+
+The result must have:
+
+- A distinctive visual identity from the first frame.
+- Buildings with meaningful silhouette variation rather than repeated cubes.
+- Consistent architectural rules tied to real repository data.
+- Smooth camera motion and clear interaction feedback.
+- A readable UI that stays subordinate to the world.
+- Beautiful transitions between overview, exploration, selection, and inspection.
+- Strong loading, error, empty, and degraded-performance states.
+- A compelling demo mode that works without GitHub credentials.
+- A scene that remains attractive with both dense and sparse repository data.
+- Good performance on ordinary laptops.
+- A clear path to extend the renderer without rewriting the data model.
 
 Avoid:
 
-- Dense grids where buildings touch each other.
-- Random placement that changes on every reload.
-- Tiny avatars that disappear at normal zoom.
-- Decorative roads disconnected from navigation logic.
-- Raw JSON or file trees presented as the main repository experience.
-- Unlimited source-code fetching.
-- Exposing secrets or private repository data.
-- Infinite procedural space with no landmarks or destinations.
-- A generic Create button disconnected from the world.
+- Generic low-poly scenes with no product meaning.
+- Random buildings that do not correspond to repository data.
+- A wall of floating labels.
+- Excessive bloom, glow, lens flare, or particle effects.
+- Dark scenes where architecture and text are difficult to read.
+- Photorealism that makes the data metaphor harder to understand.
+- A separate 3D toy disconnected from the existing GitWorld product.
+- A dashboard overlay that dominates the viewport.
 
 ---
 
-## 1. Personalized User Avatar
+## Recommended Technical Stack
 
-### Avatar Identity
+Use a browser-friendly 3D stack with a clear separation between data, world generation, simulation, and rendering.
 
-Create a dedicated avatar for the authenticated GitHub user.
+Preferred options:
 
-Use the user’s GitHub identity where appropriate:
+- React + TypeScript.
+- Vite or the existing project’s current frontend toolchain.
+- Three.js through React Three Fiber, unless the existing architecture has a strong reason to use raw Three.js.
+- Drei or equivalent helpers for cameras, controls, instancing, environment lighting, and interaction.
+- Zustand or the existing state layer for world, camera, selection, and simulation state.
+- React Query or equivalent for GitHub API fetching and caching.
+- HTML/CSS UI layered above the WebGL canvas.
 
-- GitHub profile image may appear as a portrait, badge, or face treatment if permitted.
-- Username should be available contextually and through accessible labels.
-- A stable user seed may influence clothing, palette, accessory, or silhouette.
-- The avatar must remain attractive when no profile image is available.
+Keep the implementation renderer-agnostic where reasonable. The following layers must remain separate:
 
-Do not simply display a circular profile image as a cursor. Build a character treatment that belongs to the world.
+1. **GitHub layer** — OAuth, API requests, caching, rate-limit handling, and GitHub-specific shapes.
+2. **Normalization layer** — GitHub responses to internal types.
+3. **World-generation layer** — normalized data to deterministic `WorldModel`.
+4. **Simulation layer** — movement, animation state, agents, activity, and camera targets.
+5. **3D scene layer** — building geometry, materials, lights, roads, terrain, and effects.
+6. **UI layer** — search, repository panel, mode switcher, legend, loading, errors, and settings.
 
-### Avatar System
-
-Use reusable layered components that work with the current 2D or 2.5D renderer:
-
-- Head or portrait treatment.
-- Body and clothing.
-- Hair or silhouette.
-- Small identity accessory.
-- Ground shadow or marker.
-- Directional facing.
-- Idle and walking states.
-- Focus or selection ring.
-
-The avatar must be recognizable at both town scale and close range.
-
-### Movement
-
-Support:
-
-- WASD and arrow keys.
-- Smooth acceleration and deceleration.
-- Directional facing.
-- Idle, walk, arrival, boarding, disembarking, and interaction states.
-- Soft collision or separation from buildings and major props.
-- Movement along paths without requiring pixel-perfect alignment.
-- Camera follow with gentle look-ahead.
-- Click-to-move or tap-to-move where practical.
-
-Walking should feel calm and intentional. Do not make the avatar so fast that the town becomes a menu.
-
-### Interaction Feedback
-
-When the avatar approaches an interactable object:
-
-- Highlight the destination or entrance.
-- Show a short contextual prompt.
-- Support keyboard interaction such as Enter or E.
-- Support clicking and touch where possible.
-- Preserve an accessible HTML alternative for important actions.
+Do not put GitHub API calls inside building components or Three.js scene objects.
 
 ---
 
-## 2. Spacious Small-Town Layout
+## 3D Art Direction
 
-### Spatial Philosophy
+### Overall Style
 
-The personal world must feel like a small, walkable town rather than a compressed city grid.
+Create a **stylized architectural 3D world** with clean forms, carefully controlled materials, and a slightly editorial feel.
 
-Use a sequence of readable spaces:
+The world should feel closer to a beautifully designed architectural visualization or interactive museum model than to a conventional video game.
 
-- Arrival plaza.
-- Main street.
-- Neighborhood roads.
-- Organization districts.
-- Personal project areas.
-- Parks, courtyards, or quiet buffers.
-- Repository plots.
-- Riverside edge.
-- Shared-world road.
-- Construction district access.
+Use:
 
-Every important building needs a visible approach and a clear entrance.
+- Soft stylized geometry.
+- Low-to-medium polygon complexity.
+- Carefully beveled edges where they improve readability.
+- Matte and semi-matte materials.
+- Controlled ambient occlusion.
+- Soft shadows.
+- Subtle emissive windows for active repositories.
+- Restrained atmospheric depth.
+- Clear ground planes and district boundaries.
+- A cohesive palette with language-specific accents.
 
-### Deterministic Spacing
+The city must remain legible at three scales:
 
-Implement explicit spacing constraints:
-
-- Buildings must never overlap.
-- Every building receives a buffer based on its footprint and tier.
-- Large projects receive larger plots and wider approaches.
-- Landmark repositories receive additional negative space.
-- Paths must be wide enough for the avatar and contextual effects.
-- Important buildings must not be hidden behind one another.
-- The layout must remain stable across reloads.
-
-Use deterministic packing, relaxed grids, rings, or a stable town-layout algorithm. Do not use uncontrolled physics as the primary layout system.
-
-### Town Structure
-
-Use this logical hierarchy:
-
-```text
-Arrival Plaza
-  ├── Main Roads
-  │     ├── Organization Districts
-  │     ├── Personal Projects District
-  │     ├── Public World Road
-  │     └── Riverside / Construction Road
-  └── Repository Plots
-```
-
-Do not place every important project directly in the center. Create a welcoming composition with varied distances and clear orientation.
-
-### Paths and Navigation Graph
-
-Create a real path system, not decorative lines.
-
-Paths should:
-
-- Connect the arrival point to major districts.
-- Connect districts to repository plots.
-- Lead to building entrances.
-- Form readable loops and intersections.
-- Avoid unnecessary dead ends.
-- Have hierarchy: main roads, district streets, and footpaths.
-- Support avatar movement, click-to-move, search navigation, and route highlighting.
-
-Represent the town as a navigation graph with nodes for arrival points, district entrances, repository entrances, landmarks, river crossings, and public-world gates.
-
-Use the graph for:
-
-- Click-to-move.
-- Search and destination navigation.
-- Path highlighting.
-- Travel-time estimates.
-- Future route suggestions.
-- Accessible landmark navigation.
-
-### Environmental Details
-
-Use restrained, seeded details such as:
-
-- Street lamps.
-- Trees and planted areas.
-- Benches.
-- District signs.
-- Fences and gates.
-- Utility elements.
-- Small plazas.
-- Mailboxes or notice boards.
-
-Environmental details may express project state:
-
-- Active projects have more light, people, and movement.
-- Dormant projects are quieter and less maintained.
-- Documentation-heavy projects can have a library or notice board.
-- Pull requests can create temporary construction zones.
-
-Do not add random clutter.
-
----
-
-## 3. Repository Building Importance and Size
-
-Building size must communicate project significance and complexity.
-
-### Inputs
-
-Use a normalized, clamped, documented combination of:
-
-- Repository size.
-- Stars using logarithmic scaling.
-- Forks with capped influence.
-- Contributor count.
-- Commit volume or recency.
-- File count.
-- Directory count.
-- Dependency count.
-- Language composition.
-- Project type.
-
-Do not let every metric independently increase size. Use a weighted model.
-
-Example:
-
-```text
-importance = weighted(
-  log(stars + 1),
-  log(forks + 1),
-  log(contributors + 1),
-  normalized(repositorySize),
-  normalized(fileCount),
-  normalized(commitActivity)
-)
-
-buildingTier = clamp(importance, minimumTier, maximumTier)
-plotSize = basePlot + tierScale + complexityBuffer
-```
-
-### Semantics
-
-The user should intuitively read:
-
-- Small project = modest building and compact plot.
-- Serious project = larger structure with more activity.
-- Major project = landmark or campus-like project.
-- Complex project = larger plot with room for internal neighborhoods.
-- Dormant project = may remain physically important while appearing quiet.
-
-Do not equate age with insignificance.
-
-Use more than height to communicate importance:
-
-- Footprint.
-- Entrance treatment.
-- Signage.
-- Lighting.
-- Courtyard size.
-- Annexes.
-- Path prominence.
-- Landmark framing.
-
----
-
-## 4. Entering a Repository
-
-Every repository building needs a clear threshold.
-
-When the user approaches or selects it:
-
-- Highlight the entrance.
-- Show the repository name.
-- Show a short action prompt.
-- Support click, Enter, and E.
-- Animate entry.
-- Preserve the route back to the town.
-
-The transition can be a camera push-in, doorway effect, portal, fade, or world transformation. It should feel like entering a place rather than opening a modal.
-
-### Repository World
-
-A repository becomes a visual map of its actual structure.
-
-Represent:
-
-- Repository root.
-- Top-level directories.
-- Important files.
-- Primary and secondary languages.
-- Frontend and backend areas.
-- Tests.
-- Documentation.
-- Configuration and tooling.
-- Assets and media.
-- Infrastructure and deployment.
-- Dependencies.
-- Recent activity.
-- Contributors.
-
-Use aggregation and progressive disclosure. Do not render every file individually in a large repository.
-
-### Spatial Grammar
-
-Use a consistent mapping:
-
-| Repository element | World element |
+| Scale | What the user should understand |
 |---|---|
-| Repository root | Central plaza, campus, or town hall |
-| Top-level directories | Neighborhoods or blocks |
-| Important files | Buildings or civic structures |
-| Entry points | Central or landmark buildings |
-| Tests | Labs or quality-control district |
-| Documentation | Library or visitor center |
-| Configuration | Utilities and infrastructure |
-| Build/deployment | Factory, launchpad, or transit system |
-| Scripts | Workshops |
-| Assets/media | Studios, galleries, or warehouses |
-| Dependencies | Roads, bridges, or service connections |
-| Generated/vendor code | Aggregated restricted utility zone |
+| Far overview | District structure, landmarks, roads, and overall city shape |
+| Mid-distance | Repository identity, building tier, activity, language style, and surrounding context |
+| Close inspection | Facade details, windows, issues, construction, contributors, and interaction targets |
 
-### Repository Scale
+### Camera and Projection
 
-| Zoom level | Representation |
-|---|---|
-| Repository overview | Major neighborhoods, languages, entry points, activity, and dependencies |
-| Directory level | Top-level files, directory buildings, category landmarks, and local paths |
-| Close level | Important files, recent activity, contributors, and contextual metadata |
+Use a polished perspective camera or a carefully tuned orthographic/isometric camera as the default. Choose the camera model that best supports both architectural beauty and navigation.
 
-Large repositories should feel substantial, not cluttered. Group repetitive, generated, vendor, and media files.
+Recommended behavior:
+
+- Start with a high three-quarter overview of the city.
+- Use smooth orbit, pan, and zoom controls.
+- Keep the horizon and verticals stable enough to preserve spatial understanding.
+- Prevent the camera from clipping through terrain or buildings.
+- Set sensible minimum and maximum zoom distances.
+- Use damping for orbit and pan controls.
+- Animate camera targets rather than teleporting.
+- Support a “focus selected repository” action.
+- Keep a clear reset-to-city-overview action.
+
+If a first-person walking camera is included, treat it as an optional exploration mode rather than the only navigation method. The user must always have a reliable overview camera.
+
+### Lighting
+
+Lighting must communicate time, activity, and hierarchy without turning into a visual-effects demo.
+
+Use a restrained lighting system such as:
+
+- Soft environment or hemisphere light.
+- One broad directional key light.
+- Ambient occlusion or a lightweight approximation.
+- Emissive windows and accents for active repositories.
+- Subtle district-specific fill colors.
+- Optional dusk-to-night transition when entering close exploration.
+
+Use bloom only if it materially improves the active-state metaphor. Keep it subtle and provide a reduced-effects fallback.
+
+### Materials
+
+Create a small material system rather than assigning arbitrary colors to every building.
+
+A building material should be a function of:
+
+- Language palette.
+- Activity state.
+- Repository tier.
+- District identity.
+- Condition or age.
+- Controlled seed-based variation.
+
+Inactive buildings should become cooler, less saturated, or more weathered. They should not simply become invisible or uniformly gray.
 
 ---
 
-## 5. Reading the Actual Repository
+## Repository Building System
 
-Inspect the actual repository structure and metadata where the authenticated user is authorized to access it.
+The most important Version 2 feature is a convincing procedural building system.
 
-### Data to Collect
+### Building Identity
 
-Use GitHub Contents, Git Trees, GraphQL, or a secure server-side clone as appropriate.
+Each repository must have a stable architectural identity derived from its stable repository ID.
 
-Collect a bounded profile containing:
+Use a seeded generator to choose:
 
-- Default branch.
-- Root tree.
-- File paths.
-- File extensions.
-- Language composition.
-- File sizes.
-- Directory sizes and counts.
-- Likely entry points.
-- Package manifests and lockfiles.
-- Configuration files.
-- Tests and test patterns.
-- Documentation files.
-- Build and deployment files.
-- Recent commits.
-- Contributors where available.
-- Internal dependencies or relationships where reliable.
+- Base footprint ratio.
+- Height variation.
+- Roof profile.
+- Window arrangement.
+- Accent placement.
+- Entrance position.
+- Courtyard or annex presence.
+- Signage treatment.
+- Vegetation or wear details.
 
-### Bounds and Caching
+The same repository must produce the same core building on every reload.
 
-Never recursively fetch unlimited source code.
+Do not generate an entirely random building every time. Users should be able to recognize their projects.
+
+### Building Tier
+
+Map stars into a clear architectural hierarchy:
+
+| Star tier | Suggested architectural interpretation |
+|---|---|
+| 0 stars | Small workshop, shed, studio, or compact house |
+| 1–10 | Townhouse, small office, or neighborhood building |
+| 10–100 | Mid-rise office, civic building, or active studio |
+| 100–1000 | High-rise, campus building, or prominent tower |
+| 1000+ | Landmark, observatory, headquarters, or signature tower |
+
+Use logarithmic scaling. A highly starred repository should be prominent, but it must not make every other project feel irrelevant.
+
+### Repository Size
+
+Use repository size to influence footprint and mass. Apply clamped, logarithmic, or normalized scaling.
+
+Do not let a large binary repository become an absurdly massive building. Use sensible limits and document the normalization rule.
+
+### Language Architecture Styles
+
+Implement a real lookup table for common languages. At minimum support a substantial set such as JavaScript, TypeScript, Python, Go, Rust, Java, C++, C#, Ruby, PHP, Swift, Kotlin, Dart, HTML/CSS, and a fallback.
+
+Each language should influence several related visual properties:
+
+- Primary and secondary color.
+- Roof profile.
+- Window rhythm.
+- Edge softness or angularity.
+- Accent material.
+- Small architectural motif.
+
+Example direction, not a rigid requirement:
+
+| Language family | Architectural direction |
+|---|---|
+| JavaScript / TypeScript | Warm modern glass, lively windows, modular volumes |
+| Python | Soft geometric forms, warm accent lighting, layered terraces |
+| Rust | Angular, robust, copper or ember accents |
+| Go | Clean efficient blocks, teal accents, strong horizontal lines |
+| Java / Kotlin | Structured campus or tower forms, orderly window rhythm |
+| C / C++ | Heavy industrial or infrastructural forms, strong foundations |
+| Ruby | Refined warm facade, rounded corners, boutique character |
+| Swift | Bright minimal forms, elegant glass and pale accents |
+| HTML / CSS | Colorful facade panels, modular grid motifs |
+| Unknown | Neutral but polished fallback architecture |
+
+Do not create cartoon stereotypes. The mapping should be subtle enough to feel coherent as a city.
+
+### Activity States
+
+Activity is a core storytelling system.
+
+#### Active: commits in the last 30 days
+
+Show some combination of:
+
+- Warm lit windows.
+- Subtle movement in windows or signage.
+- Small contributor agents nearby.
+- Light smoke, steam, or activity cues only if stylistically appropriate.
+- Open doors, active entrances, or animated road traffic.
+- Brighter material response.
+
+#### Quiet: commits 30–180 days ago
+
+Show:
+
+- Partial lighting.
+- Fewer visible agents.
+- Calm surroundings.
+- Reduced motion.
+- A building that is still clearly maintained.
+
+#### Dormant: more than 180 days ago
+
+Show:
+
+- Dark windows or minimal light.
+- Cooler materials.
+- Subtle overgrowth, dust, weathering, or closed entrances.
+- No exaggerated decay that makes the repository look deleted.
+- A quiet but recognizable landmark in the user’s personal history.
+
+Activity must be communicated visually before the user reads text.
+
+### Issues
+
+Open issues should appear as physical problems rather than number badges.
+
+Possible treatments:
+
+- Small warning marker near the entrance.
+- Scaffolding or repair cones.
+- Flickering sign.
+- Visible crack or highlighted facade section.
+- Subtle pulsing beacon.
+
+Scale the visual intensity up to a cap. Never cover the building with dozens of icons.
+
+### Pull Requests
+
+Open pull requests should appear as construction:
+
+- Scaffolding.
+- Temporary cranes or platforms.
+- Construction lights.
+- Workers or contributors nearby.
+- A partially completed annex or facade section.
+
+The construction overlay should be recognizable at mid-distance but remain visually tasteful.
+
+### Forks
+
+Only show satellite buildings for the most heavily forked repositories or a capped top-N set.
+
+Satellite buildings should:
+
+- Use a smaller version of the parent architectural vocabulary.
+- Sit within the parent building’s local site.
+- Have a visual relationship to the parent without becoming clutter.
+- Communicate that the project has spread outward.
+
+### Contributors
+
+Represent contributors as simplified low-cost agents.
+
+Agents should:
+
+- Use instancing or shared geometry where possible.
+- Have restrained idle and walking animations.
+- Cluster near active repositories.
+- Move slowly and purposefully.
+- Remain readable without distracting from buildings.
+- Be capped globally and prioritized by repository activity.
+
+Do not spend the MVP on detailed humanoid characters. The metaphor matters more than character fidelity.
+
+---
+
+## Districts, Terrain, and Roads
+
+### Districts
+
+Organizations should create coherent districts rather than arbitrary colored regions.
+
+A district can include:
+
+- A distinct ground material or border.
+- A subtle sign or monument.
+- A shared color accent.
+- A recognizable layout grammar.
+- Small public spaces or courtyards.
+- A district label visible at appropriate zoom.
+
+Personal projects should use a “Personal” district with a different but harmonious treatment.
+
+Do not make districts look like disconnected islands. The full city should feel like one place.
+
+### Terrain
+
+Use terrain sparingly. A mostly planar city is acceptable if the composition is strong.
+
+Potential terrain features:
+
+- Gentle elevation changes.
+- Parks or plazas.
+- Water channels or bridges.
+- Shared courtyards.
+- Footpaths.
+- Landmark platforms.
+
+Terrain must not obscure buildings, create navigation confusion, or consume performance for decoration.
+
+### Roads and Dependencies
+
+Dependencies should become understandable physical connections.
+
+Use:
+
+- Roads, paths, pipes, bridges, or illuminated lines depending on the visual language.
+- Stronger visual emphasis for important or selected connections.
+- Reduced opacity for distant or inactive connections.
+- Smooth reveal animation when a repository is selected.
+- A clear fallback when dependency data is unavailable.
+
+Prioritize dependencies that can be identified reliably, such as same-account repositories referencing each other or lightweight manifest relationships. Do not block the build on deep dependency resolution.
+
+When a repository is selected, its immediate dependency roads should become easier to see while unrelated roads recede.
+
+---
+
+## Deterministic 3D Layout
+
+The 3D city must preserve the deterministic layout requirement from Version 1.
 
 Implement:
 
-- Maximum file count.
-- Maximum total bytes.
-- Maximum file size for content inspection.
-- Directory-depth limits.
-- Pagination.
-- Caching.
-- Conditional requests or ETags.
-- Exclusions for build outputs, vendor directories, generated files, binaries, media, and lockfile noise.
-- Progressive “inspect deeper” actions.
+- Stable seeds based on repository IDs and district IDs.
+- Deterministic district placement.
+- Stable repository locations within districts.
+- Stable rotation and architectural variation.
+- Stable landmark selection.
+- Stable satellite placement.
+- Stable road routing where the underlying dependency data is unchanged.
 
-The repository world must become usable quickly, with deeper sections loading progressively.
+Do not use an uncontrolled physics simulation for the primary layout. Physics may be used for small ambient effects, but not for city placement.
 
-### Code Classification
+Recommended layout strategy:
 
-Create an explainable deterministic classifier based on path, extension, filename, manifest, framework markers, build tooling, and test conventions.
+1. Generate district anchors from organization identifiers.
+2. Assign each repository to a district.
+3. Place buildings using a deterministic grid, spiral, Voronoi-inspired packing, or constrained rings.
+4. Reserve the largest visual anchors for top-tier repositories.
+5. Route roads along stable paths between buildings.
+6. Add small seeded offsets for organic variation.
+7. Validate that important buildings do not overlap or become unreachable.
 
-Categories should include:
-
-- Application code.
-- Frontend/UI.
-- Backend/API.
-- Data/models.
-- Tests.
-- Documentation.
-- Configuration.
-- Build/tooling.
-- Scripts/automation.
-- Assets/media.
-- Infrastructure/deployment.
-- Generated/vendor.
-- Unknown.
-
-Store category, confidence, source rule, and metadata in the normalized model.
-
-### Code-Type Effects
-
-Code categories must affect both world structure and UI:
-
-| Code type | Spatial interpretation | UI interpretation |
-|---|---|---|
-| Frontend/UI | Storefronts, public-facing buildings, screens | UI/frontend category |
-| Backend/API | Service buildings or control centers | API/service indicators |
-| Data/models | Archives, data halls, reservoirs | Data layer summary |
-| Tests | Labs or inspection yards | Test signal |
-| Documentation | Library or public information center | Documentation signal |
-| Configuration | Utilities or substations | Environment/tooling summary |
-| Build/deployment | Factory or launchpad | Delivery/build signal |
-| Scripts | Workshops | Automation category |
-| Assets/media | Studios or galleries | Asset summary |
-| Infrastructure | Network or operations district | Deployment signal |
-
-The visual mapping should be understandable without reading every file name.
-
-### Privacy
-
-Treat source code as sensitive:
-
-- Only inspect repositories the user is authorized to access.
-- Keep OAuth tokens server-side.
-- Do not send private code to third-party AI systems by default.
-- Exclude `.env`, private keys, credentials, certificates, tokens, and obvious secret-bearing paths.
-- Do not display secret-like content.
-- Prefer metadata and path-based classification for the MVP.
-- Sanitize text before rendering.
-- Minimize retention of private source data.
-
-A public repository should still be represented primarily through structure and metadata, not by copying its entire source code into the shared world.
+The user should be able to build a mental map of their projects.
 
 ---
 
-## 6. Repository UI and Activity
+## Interaction Model
 
-The repository world should remain explorable while providing useful context.
-
-Include:
-
-- Breadcrumb: town → district → repository.
-- Repository name and owner.
-- Back-to-town action.
-- Search or quick navigation.
-- Project type.
-- Dominant languages.
-- Approximate codebase size.
-- Major code categories.
-- Recent activity.
-- Contributors.
-- Documentation and test signals.
-- Dependency summary.
-
-When selecting a file or directory, show a contextual surface with:
-
-- Name and path.
-- Category.
-- Size or file count.
-- Language.
-- Last activity.
-- Mapped role.
-- Expand or inspect-deeper action.
-- View-on-GitHub link.
-
-Do not expose raw API objects as the primary UI.
-
-Recent activity should appear as:
-
-- Active paths or lit areas near recently changed code.
-- Contributor presence near active directories.
-- Construction near pull-request areas.
-- Quiet zones for untouched code.
-
----
-
-## 7. Shared World and Other People’s Repositories
-
-The user should be able to walk far enough to reach another person’s public repository, but do not create one infinite browser-rendered map.
-
-### World Model
-
-Each user has a personal town. Beyond it are shared public regions containing repositories and user worlds whose owners have opted in.
-
-```text
-Personal Town
-   ↓
-Open Source Road
-   ↓
-Community Region
-   ↓
-Public Repository District
-   ↓
-Another User’s Opt-In World
-```
-
-Use visible gates, roads, bridges, plazas, signs, and region transitions rather than random infinite space.
-
-### Public Visibility
-
-Repository creation and public-world publication are separate decisions.
-
-Support visibility levels:
-
-| Visibility | What others can see |
-|---|---|
-| Hidden | Nothing |
-| Public landmark | Public repository name, metadata, building, GitHub link |
-| Explorable world | Sanitized directory structure, categories, project type, activity |
-| Fully customized | Owner-approved public descriptions and visual customization |
-
-Private repositories must never appear publicly. Organization repositories require appropriate permissions. Owners must be able to hide or remove their public world.
-
-Do not make public-world publication automatic solely because a GitHub repository is public.
-
-### Public World Manifest
-
-Generate a sanitized server-side manifest:
-
-```ts
-interface PublicWorldManifest {
-  worldId: string;
-  repositoryId: string;
-  ownerHandle: string;
-  repositoryName: string;
-  displayName: string;
-  visibility: "landmark" | "explorable" | "custom";
-  regionId: string;
-  cellId: string;
-  buildingTier: number;
-  projectType?: string;
-  primaryLanguage?: string;
-  languageMix: Record<string, number>;
-  stars: number;
-  forks: number;
-  contributorCount?: number;
-  activityState: "active" | "quiet" | "dormant";
-  hasDocumentation: boolean;
-  hasTests: boolean;
-  codeCategories: string[];
-  worldSeed: number;
-  updatedAt: string;
-}
-```
-
-The client should receive sanitized public manifests, not arbitrary GitHub responses or another user’s OAuth data.
-
-### Global Placement
-
-Use deterministic spatial regions and cells based on opaque world IDs. Do not expose raw account IDs or repository IDs in visible coordinates.
-
-Cluster public worlds into meaningful districts such as:
-
-- Open Source Commons.
-- JavaScript Neighborhood.
-- Python Tools District.
-- Rust Systems Quarter.
-- AI Research Campus.
-- Indie Game Alley.
-- Developer Tools Boulevard.
-- Featured Hackathon Worlds.
-
-Use interest-based neighborhoods rather than pure randomness.
-
-### Streaming and Travel
-
-When the user approaches a public-world boundary:
-
-1. Begin loading the next region in the background.
-2. Show a physical transition such as a gate, road, tunnel, plaza, or bridge.
-3. Stream the region before the user arrives.
-4. Transfer the user without a jarring screen replacement.
-5. Update the location breadcrumb.
-6. Preserve a route back home.
-
-Load public worlds in tiers:
-
-- Personal town: detailed.
-- Nearby landmarks: medium detail.
-- Distant regions: simplified silhouettes or markers.
-- Full repository world: load on approach, search, or entry.
-
-### Arrival at Another Repository
-
-When the user reaches another public repository:
-
-- Show a recognizable building and entrance plaza.
-- Display an arrival label.
-- Identify the owner and project.
-- Show public activity and project type.
-- Offer entry into the sanitized repository world if allowed.
-- Provide a View on GitHub action.
-- Offer a route back to the user’s town.
-
-Do not expose private code or unauthorized details.
-
-### Navigation Beyond Walking
+### Overview Navigation
 
 Support:
 
-- Search for public repositories.
-- Explore nearby worlds.
-- Region map.
-- Featured destinations.
-- Recently visited worlds.
-- Language and category filters.
-- Return-home action.
-- Breadcrumbs such as `Your Town / Open Source Road / Python District / Project World`.
+- Orbit or rotate around the city.
+- Pan across the city.
+- Zoom in and out.
+- Reset to overview.
+- Focus selected repository.
+- Smooth camera fly-to from search.
 
-Walking should create discovery, but it must not be the only way to navigate.
+Controls should be discoverable without permanently covering the world. Use a compact controls hint during the first session and allow it to be dismissed.
 
----
+### Building Interaction
 
-## 8. River Boundary, Bridge, and Boat
+On hover:
 
-The river connects the user’s town to the construction district and can also function as a world boundary.
+- Highlight the building with an outline, shadow, elevation, or material shift.
+- Show a compact repository label.
+- Highlight its immediate roads subtly.
 
-### Riverside Layout
+On click:
 
-Place the river in a clear, intentional location with:
+- Select the building.
+- Move the camera to a comfortable inspection angle.
+- Open the repository detail panel.
+- Reveal nearby dependency connections.
+- Pause or reduce unrelated scene motion if needed for focus.
 
-- Town-side riverbank.
-- Bridge entrance.
-- Boat dock.
-- Small boat or ferry.
-- Construction-side riverbank.
-- Signage.
-- Paths to both crossings.
-- A route from the opposite bank to the construction site.
+On approach in optional walking mode:
 
-The river should have restrained animation such as flowing water, ripples, reeds, or reflections.
+- Trigger the same contextual inspection behavior.
+- Never make proximity the only way to access repository information.
 
-### Bridge
+### Repository Detail Panel
 
-The bridge should be the reliable route:
+The panel must feel like an in-world inspection surface.
 
-- Wide and easy to cross.
-- Clear collision boundaries.
-- Visible destination.
-- Smooth crossing behavior.
-- Keyboard, mouse, and touch support.
-- No precision platforming.
+It should include:
 
-### Boat
-
-The boat should be the charming optional route:
-
-1. Approach the dock.
-2. Show “Board boat.”
-3. Press Enter, E, click, or tap.
-4. Avatar boards.
-5. Boat follows a stable predefined route.
-6. Camera follows briefly.
-7. Avatar disembarks at the opposite dock.
-
-Do not require manual steering for the MVP. The bridge must remain available as a reliable fallback.
-
-### River Exit
-
-If the user intentionally enters or jumps into deep water:
-
-1. Show a splash, ripple, or falling animation.
-2. Give a short grace period or cancel opportunity where appropriate.
-3. Begin a “Leaving world” transition.
-4. Return the avatar to the previous safe location.
-5. If no safe location exists, return to the town arrival plaza.
-6. Preserve world state, avatar state, and any safe form state.
-
-Recommended water behavior:
-
-- Shallow edge: warning or contextual prompt.
-- Deep water: exit trigger after a threshold.
-- Intentional jump: begins exit sequence immediately.
-- Bridge and dock zones: never trigger the exit mechanic.
-
-Do not treat this as an error. Use copy such as “The current carried you home” or “You returned to shore.”
-
-Add a setting to require confirmation or disable accidental river exits if necessary.
-
----
-
-## 9. Construction District and Create Repository
-
-### Concept
-
-A repository starts as an empty plot. The construction district is where new projects are born.
-
-After crossing the river, the user finds:
-
-- Foundation plots.
-- Blueprint table.
-- Construction office.
-- Crane or scaffolding.
-- Materials.
-- Temporary project signs.
-- Construction lights.
-- A clear Create Repository action.
-
-Use the same creation flow from the construction office, blueprint table, empty plot sign, or primary button. All entry points must open one shared form.
-
-### Creation Flow
-
-Collect only the useful initial settings:
-
-- Repository name.
+- Repository name and owner.
 - Description.
-- Public or private visibility.
-- Initialize with README.
-- `.gitignore` template.
-- License.
-- Project type.
-- Optional topics.
+- Primary language.
+- Activity state in plain language.
+- Stars, forks, open issues, open pull requests, last activity, and contributors.
+- A compact visual relationship summary when applicable.
+- Clear “Open on GitHub” action.
+- Close action and Escape support.
 
-Project types may include web app, API/service, library/SDK, CLI, mobile app, data/ML, documentation, infrastructure, and other.
+The panel should use a dark, calm surface with subtle translucency or a solid high-contrast backing. The 3D world should remain visible behind it.
 
-Show a live architectural preview:
+Do not turn the panel into a large analytics dashboard. The building is the visualization; the panel provides context.
 
-- Repository name on the construction sign.
-- Initial building silhouette.
-- Project-category accent.
-- Proposed plot.
-- Visibility indicator.
+### Search
 
-Validate GitHub naming rules, required fields, conflicts, visibility, templates, and licenses before submission.
+Search should work in both 2D and 3D.
 
-### Final Review and Confirmation
+When the user searches for a repository:
 
-Because this creates a real external repository, require an explicit final review step.
+1. Show matching results in a compact command-palette-like surface.
+2. Use keyboard navigation.
+3. Preview the repository’s language color and building tier.
+4. Animate the camera through the city toward the target.
+5. Arrive at a good inspection angle.
+6. Select the building and open the panel.
+7. Highlight related dependency roads if available.
 
-Show the exact payload:
+Support no-result and ambiguous-match states with clear language.
 
-```text
-Repository: my-new-project
-Visibility: Private
-Description: A short project description
-Initialize README: Yes
-.gitignore: Node
-License: MIT
-Project type: Web app
-```
+### Mode Switching
 
-Use a clear final action such as **Break ground on repository** with supporting text that says the app will create the repository on GitHub.
+Add a visible but restrained 2D/3D mode switcher.
 
-Do not create a repository until the user confirms.
+The transition should:
 
-### GitHub Integration
+- Preserve the selected repository.
+- Preserve the current logical location.
+- Transition camera contextually rather than abruptly resetting.
+- Avoid re-fetching all GitHub data.
+- Feel like the same city changing form.
 
-Create the repository server-side using the authenticated user’s GitHub session.
-
-Requirements:
-
-- Never expose OAuth secrets or tokens in the browser.
-- Request the minimum required GitHub scope.
-- Explain the permission before reauthorization.
-- Prevent duplicate submissions with idempotency keys or request IDs.
-- Treat network timeouts as ambiguous until status is safely checked.
-- Handle organization permissions explicitly.
-- Preserve form data through recoverable errors.
-- Do not silently create the repository under the wrong owner.
-
-### Construction Sequence
-
-After confirmed GitHub creation:
-
-1. Keep the user at the site.
-2. Show honest creation progress.
-3. Update the sign with the new repository name.
-4. Activate the foundation.
-5. Animate scaffolding, lights, and materials.
-6. Generate the initial repository building.
-7. Show the GitHub link.
-8. Offer Enter Project and Return to Town.
-
-If the repository is empty or contains only a README, show a foundation or starter building rather than pretending a complete codebase exists.
-
-### Repository Evolution
-
-As the repository evolves:
-
-- More files increase structural complexity.
-- New languages add architectural accents.
-- Tests create labs or quality-control structures.
-- Documentation creates a library or visitor center.
-- Contributors add activity.
-- Stars increase prominence gradually.
-- Forks create satellites.
-- Pull requests create construction.
-- Dependencies extend roads and utility connections.
-
-Use staged changes and animation where practical. Preserve recognition of the project.
-
-### Public-World Opt-In
-
-After creation, offer a separate choice:
-
-```text
-Add this project to the public GitWorld?
-
-[Keep private to my town]
-[Show as a public landmark]
-[Make the project world explorable]
-```
-
-Do not combine repository visibility and public GitWorld visibility into one checkbox.
+If a full spatial morph is too expensive, use a well-designed fade, camera move, and matching selection state. Do not leave the user in an apparently unrelated location.
 
 ---
 
-## 10. Security, Privacy, and External Actions
+## UI System
 
-Implement strict boundaries:
+The canvas is the hero. UI should support orientation, discovery, and inspection without becoming a second product layered on top.
 
-- Private repositories never appear in public regions.
-- Repository source code is not sent to third-party AI services by default.
-- Sensitive files are excluded from inspection and display.
-- Tokens remain server-side.
-- Public-world data is sanitized.
-- Organization visibility requires appropriate permission.
-- Owners can hide their public world.
-- Repository creation requires explicit confirmation.
-- Public/private defaults must not silently expose a new repository.
-- Duplicate creation must be prevented.
-- Creation state must recover after refresh or navigation.
+Include:
 
-The user must know when they are:
+- Compact top-level identity or user chip.
+- Search control.
+- 2D/3D mode switcher.
+- Reset view control.
+- Minimal legend or world key.
+- Optional settings for reduced motion, reduced effects, and quality level.
+- Repository inspection panel.
+- First-use controls hint.
 
-- Viewing their private town.
-- Entering another person’s public world.
-- Creating a real GitHub repository.
-- Publishing a world manifest publicly.
+Use a consistent UI system:
 
----
+- One primary accent.
+- One active-selection treatment.
+- One danger/warning treatment.
+- Consistent border radius and elevation.
+- Strong focus states.
+- Accessible text contrast.
+- Keyboard navigation.
+- Clear disabled and loading states.
 
-## 11. Loading, Error, and Empty States
-
-### Town Loading
-
-Use meaningful stages:
-
-- Drawing your town.
-- Placing your projects.
-- Opening the main streets.
-
-Reveal the avatar early.
-
-### Repository Loading
-
-Show partial structure as it arrives:
-
-- Preparing repository map.
-- Reading project structure.
-- Grouping code neighborhoods.
-- Connecting dependencies.
-
-### Public World Loading
-
-Preload approaching regions and show a physical transition. Never leave the user in an unexplained blank state.
-
-### Construction Loading
-
-Use honest stages:
-
-- Reviewing plans.
-- Sending request to GitHub.
-- Laying the foundation.
-- Opening the new project.
-
-### Error States
-
-Handle OAuth failure, API rate limits, network failures, partial trees, unavailable repository data, WebGL-independent renderer failures, permission problems, name conflicts, organization restrictions, and timeouts.
-
-Preserve cached worlds and entered form data where safe. Use plain language and clear recovery actions.
-
-### Empty States
-
-If the user has few repositories, create a small but deliberate neighborhood. If there are no repositories, show an inviting town and a route to the construction site.
+Avoid putting a card around every piece of information. Let the world carry the visual meaning.
 
 ---
 
-## 12. Architecture and Data Model
+## Responsive and Accessibility Requirements
 
-Keep these layers separate:
+### Desktop
 
-1. GitHub API and OAuth layer.
-2. Normalization layer.
-3. Town and public-world generation layer.
-4. Repository-tree normalization and classification layer.
-5. Navigation graph and path layer.
-6. Avatar and simulation layer.
-7. Renderer layer.
-8. UI and interaction layer.
-9. Public-world registry and visibility layer.
-10. Repository-creation service layer.
+Desktop is the primary target. Support common laptop resolutions and trackpads.
 
-Suggested normalized models:
+The scene should remain usable if the browser viewport is not full-screen.
 
-```ts
-interface NormalizedUser {
-  id: string;
-  login: string;
-  avatarUrl?: string;
-  profileColorSeed: number;
-}
+### Tablet and Mobile
 
-interface NormalizedRepo {
-  id: string;
-  name: string;
-  fullName: string;
-  owner: string;
-  organization?: string;
-  description?: string;
-  stars: number;
-  forks: number;
-  sizeKb: number;
-  language?: string;
-  languages: Record<string, number>;
-  contributorCount: number;
-  openIssues: number;
-  openPullRequests: number;
-  lastCommitAt?: string;
-  defaultBranch?: string;
-  projectType?: string;
-  buildingTier: number;
-  districtId: string;
-  worldSeed: number;
-}
+On smaller screens:
 
-interface RepoDirectoryNode {
-  id: string;
-  name: string;
-  path: string;
-  children: Array<RepoDirectoryNode | RepoFileNode>;
-  fileCount: number;
-  totalBytes: number;
-  category?: CodeCategory;
-  lastActivityAt?: string;
-  worldSeed: number;
-}
+- Use touch-friendly orbit, pan, and zoom controls.
+- Provide a compact movement option only if walking mode is enabled.
+- Convert the repository panel into a bottom sheet or full-height sheet.
+- Keep the search control easily reachable.
+- Reduce scene density and effects automatically if necessary.
+- Preserve the ability to understand district, building, and selection hierarchy.
 
-interface RepoFileNode {
-  id: string;
-  name: string;
-  path: string;
-  extension?: string;
-  bytes: number;
-  category: CodeCategory;
-  language?: string;
-  isEntryPoint?: boolean;
-  isSensitive?: boolean;
-  worldSeed: number;
-}
+### Accessibility
 
-interface PublicWorldManifest {
-  worldId: string;
-  repositoryId: string;
-  ownerHandle: string;
-  repositoryName: string;
-  visibility: "landmark" | "explorable" | "custom";
-  regionId: string;
-  cellId: string;
-  buildingTier: number;
-  projectType?: string;
-  primaryLanguage?: string;
-  languageMix: Record<string, number>;
-  activityState: "active" | "quiet" | "dormant";
-  codeCategories: string[];
-  worldSeed: number;
-}
-```
+Support:
 
-Use stable IDs and seeded placement for avatar appearance, town plots, paths, repository interiors, public-world cells, environmental props, and construction plots.
+- Keyboard navigation for all HTML controls.
+- Visible focus states.
+- Escape to close overlays.
+- Reduced motion preference.
+- Reduced visual-effects preference.
+- Meaningful accessible labels for controls.
+- Sufficient text contrast.
+- A non-color-only explanation of activity states in the repository panel.
+- A fallback list/search interface so repository information is not inaccessible to users who cannot use the 3D canvas.
+
+The 3D world is the primary visual experience, but essential information must not be locked exclusively inside WebGL.
 
 ---
 
-## 13. Performance and Scale
+## Performance and Rendering Strategy
 
-Implement from the start:
+Performance is part of the design quality.
 
-- Server-side GitHub access.
-- Pagination and caching.
-- Conditional requests where supported.
-- Bounded repository tree inspection.
-- Progressive loading.
-- Aggregation for large directories.
-- Viewport and zoom-based rendering limits.
-- Shared geometry or sprites where appropriate.
-- Stable navigation graph queries.
-- Public-world region streaming.
-- Sanitized manifests for shared regions.
-- Limited avatars and environmental effects.
-- No per-frame React updates for movement or animation.
+Implement from the beginning:
 
-For large repositories, show root and major directories first, group repetitive content, and allow users to expand meaningful areas.
+- Instanced geometry for repeated windows, trees, agents, lamps, and small props.
+- Shared geometries and materials.
+- Frustum culling or equivalent visibility management.
+- Level of detail for distant buildings.
+- Simplified district representation at far zoom.
+- Reduced contributor and prop counts on lower quality settings.
+- Texture atlases only when they materially reduce draw calls.
+- Lazy loading for optional assets.
+- Avoid large uncompressed textures.
+- Avoid per-frame React state updates for animation.
+- Keep the render loop independent from most UI updates.
+- Dispose of resources when switching worlds or rebuilding scene fragments.
+- Use a capped pixel ratio.
+- Detect lower-performance devices and choose a lower quality preset.
 
-For public worlds, use tiered loading:
+Provide at least three quality modes:
 
-- Detailed personal town.
-- Medium-detail nearby landmarks.
-- Simplified distant regions.
-- Full repository world on entry.
+| Mode | Behavior |
+|---|---|
+| High | Full shadows, richer effects, more agents and details |
+| Balanced | Moderate shadows, capped effects, normal scene density |
+| Performance | Reduced shadows, simplified materials, fewer agents and props |
+
+The app must remain visually coherent in Performance mode.
+
+If WebGL is unavailable or fails, show a graceful fallback to the 2D map rather than a broken blank screen.
 
 ---
 
-## 14. Implementation Order
+## Loading, Error, and Fallback Experience
 
-### Phase 1: Avatar and Town
+### 3D Loading
 
-- Build the personalized avatar.
-- Add movement and camera follow.
-- Replace dense layout with small-town spacing.
-- Add districts, plots, roads, paths, and entrances.
-- Add the navigation graph.
+Do not show a blank canvas with a spinner.
 
-### Phase 2: Repository Importance
+Show the city being assembled through purposeful stages such as:
 
-- Implement normalized building-size and plot-size rules.
-- Add landmark framing and path hierarchy.
-- Validate tiny, medium, and large repository layouts.
+- “Preparing your districts.”
+- “Constructing repository landmarks.”
+- “Lighting active projects.”
+- “Connecting dependencies.”
 
-### Phase 3: Repository Worlds
+Use a partial scene or silhouette while assets and data load. Keep progress honest.
 
-- Fetch bounded repository trees.
-- Classify files and directories.
-- Generate stable repository neighborhoods.
-- Add code-category architecture and repository UI.
-- Add enter/return transitions.
+### GitHub API Errors
 
-### Phase 4: River and Construction District
+Explain errors in user language. Preserve already-loaded data where possible.
 
-- Add river, bridge, dock, boat, and construction route.
-- Add safe river exit behavior.
-- Add construction site and empty plot.
+Handle:
 
-### Phase 5: Create Repository
+- OAuth failure.
+- Rate limits.
+- Partial repository data.
+- Missing language data.
+- Missing dependency data.
+- Empty accounts.
+- Network interruptions.
+- WebGL initialization failure.
 
-- Build the blueprint form.
-- Add project-type preview.
-- Add validation and review.
-- Add server-side GitHub creation.
-- Add idempotency, permissions, retries, and recovery.
-- Animate the first construction stage.
+### Demo Mode
 
-### Phase 6: Shared Public World
+Include a realistic seeded demo world with:
 
-- Add public-world visibility settings.
-- Build sanitized manifests.
-- Add deterministic public regions and interest-based districts.
-- Add public-world road and streaming.
-- Add arrival at another person’s repository.
-- Add search, region map, and return-home navigation.
+- Several districts.
+- A landmark repository.
+- Active, quiet, and dormant buildings.
+- Multiple languages.
+- Contributors.
+- Open issues.
+- Pull-request construction.
+- Satellite buildings.
+- Dependency roads.
+- At least one visually surprising building.
 
-### Phase 7: Polish and Testing
+Demo mode must use the same normalized data, world-generation, simulation, and rendering pipeline as real GitHub data. It should not be a separate fake implementation.
 
-- Refine animation and transitions.
+---
+
+## Suggested Implementation Phases
+
+### Phase 1: 3D Foundation
+
+- Establish the 3D renderer and camera system.
+- Render a small handcrafted district.
+- Create the base building geometry system.
+- Establish lighting, materials, shadows, atmosphere, and design tokens.
+- Build the 3D scene shell and UI overlay layer.
+
+### Phase 2: Real World Model
+
+- Connect the existing GitHub normalization layer.
+- Extend `WorldModel` with 3D-specific properties.
+- Generate deterministic districts and building transforms.
+- Render real repositories as distinct buildings.
+- Preserve stable layout across reloads.
+
+### Phase 3: Data-Driven Architecture
+
+- Implement star and size scaling.
+- Implement language styles.
+- Implement active, quiet, and dormant states.
+- Implement issue markers, construction, and satellite buildings.
+- Add dependency roads.
+- Add contributor agents.
+
+### Phase 4: Navigation and Inspection
+
+- Add orbit, pan, zoom, and reset.
+- Add building hover and selection.
+- Add camera focus and fly-to.
+- Add repository panel.
+- Add search.
+- Add optional walking mode only after overview navigation feels excellent.
+
+### Phase 5: 2D/3D Continuity
+
+- Add mode switcher.
+- Preserve selection and logical location.
+- Match camera targets between modes.
+- Ensure neither mode feels like an afterthought.
+
+### Phase 6: Optimization and Polish
+
+- Add instancing and level of detail.
+- Add quality presets.
+- Test lower-end hardware.
 - Test sparse and dense accounts.
-- Test small and large repositories.
-- Test private data boundaries.
-- Test rate limits and network failures.
-- Test browser refresh during repository creation.
-- Test keyboard, mouse, touch, and accessible alternatives.
+- Refine lighting, motion, panel layout, typography, transitions, and error states.
 - Remove placeholder content and dead controls.
 
 ---
 
-## 15. Acceptance Criteria
+## Out of Scope for Version 2
 
-The build is complete only when:
+Do not allow these to delay the core 3D city:
 
-- The user has a recognizable avatar.
-- The avatar moves smoothly through a spacious town.
-- Buildings have meaningful spacing and clear entrances.
-- Roads and paths connect real destinations.
-- Large or important repositories occupy visibly larger plots.
-- Building size is determined by documented real project signals.
-- The user can enter a repository.
-- The repository world is generated from actual authorized repository structure and metadata.
-- Directories become neighborhoods and meaningful files become buildings.
-- Frontend, backend, tests, docs, configuration, data, infrastructure, assets, and dependencies affect the world and UI.
-- Large repositories are aggregated and progressively explorable.
-- Private code and sensitive files are protected.
-- The user can walk to a public-world road and reach opt-in public repositories.
-- Public regions are streamed and spatially coherent.
-- Another person’s repository appears as a meaningful destination rather than a random file card.
-- The user can return home and preserve context.
-- A river clearly separates the town from the construction district.
-- The user can cross with a bridge or boat.
-- Intentionally entering the river returns the user to a safe location.
-- Accidental river exits are minimized and recoverable.
-- The construction site is visually understandable.
-- The user can create a real GitHub repository through an explicit reviewed flow.
-- The creation flow prevents duplicate repositories and handles timeouts safely.
-- The new repository appears as a foundation or building in the user’s town.
-- Repository creation and public-world publication are separate choices.
-- Loading, empty, error, permission, validation, rate-limit, and unavailable-data states are polished.
-- The full feature set works in demo mode with mocked GitHub creation.
-- Essential information remains accessible without canvas movement.
-- The experience feels like one coherent world rather than disconnected features.
+- Multiplayer.
+- Public world browsing.
+- Shared worlds.
+- Real-time collaborative editing.
+- Full physics-based city simulation.
+- Deep dependency resolution across every package ecosystem.
+- Fully modeled interiors for every repository.
+- Photorealistic assets.
+- Complex character customization.
+- VR or AR support.
+- Full day/night timeline mode.
+- Advanced traffic simulation.
+- Procedural terrain that obscures the data.
+
+Architect for future extensibility, but ship the core 3D experience first.
 
 ---
 
-## 16. Demo Walkthrough
+## Acceptance Criteria
 
-The ideal hackathon demo should take approximately three minutes:
+The build is successful only if:
 
-1. Start in the user’s spacious personal town.
-2. Show the personalized avatar.
-3. Walk through a district and point out how building size reflects project importance.
-4. Enter a repository.
-5. Show how frontend, backend, tests, docs, configuration, and dependencies become neighborhoods and structures.
-6. Return to the town.
-7. Walk toward the river.
-8. Show both the bridge and boat.
-9. Cross into the construction district.
-10. Open the blueprint-like Create Repository flow.
-11. Choose a project type and show the architectural preview.
-12. Review and explicitly confirm repository creation.
-13. Show the foundation and first construction sequence.
-14. Return to the town or enter the new project.
-15. Travel toward the shared-world road.
-16. Arrive at another public, opt-in repository.
-17. Enter its public repository world.
-18. Briefly demonstrate jumping into the river and returning to a safe location.
+- A user can enter a working 3D city from real GitHub data or demo mode.
+- Repository buildings have visible architectural variation tied to repository data.
+- Star count, size, language, activity, issues, pull requests, forks, contributors, and dependencies have physical or architectural expression.
+- The same account produces a stable 3D layout across reloads.
+- The city is attractive at overview, mid-distance, and close inspection scales.
+- Camera controls feel smooth and predictable.
+- Building selection is clear and satisfying.
+- Search can focus the camera on a repository.
+- The repository detail panel remains readable while preserving the world behind it.
+- 2D and 3D modes preserve user context.
+- The scene remains responsive on ordinary laptops.
+- Quality settings and reduced-effects options work.
+- WebGL failure falls back gracefully to 2D.
+- Mobile or narrow-screen behavior is usable.
+- Essential repository information remains accessible outside the canvas.
+- Sparse accounts still produce a deliberate, attractive neighborhood.
+- Loading, error, empty, and rate-limit states are designed and recoverable.
+- No generic dashboard takes over the product.
+- The final experience creates the reaction: **“I’ve never seen my GitHub like this before.”**
 
-The story should be clear:
+---
 
-> **Your code has a home. Other people’s code has a world. New projects have a birthplace.**
+## Final Deliverables
+
+Produce:
+
+1. A working GitWorld 3D web app.
+2. A local setup guide with required environment variables.
+3. A demo mode that works without GitHub credentials.
+4. A concise explanation of the 3D rendering and world-generation architecture.
+5. A description of the building-generation rules and language style system.
+6. A performance strategy explaining instancing, culling, level of detail, and quality presets.
+7. A list of known limitations.
+8. A prioritized roadmap for interiors, time-of-day, analytics mode, achievements, sharing, multiplayer, and real-time event streaming.
+9. A two-minute judge’s walkthrough.
+10. A short explanation of the design choices that make Version 2 feel like an evolution of GitWorld rather than a separate 3D demo.
+
+Before declaring completion, evaluate the product like a hackathon judge:
+
+- Start from a clean load.
+- Enter demo mode without reading the source code.
+- Watch the first ten seconds.
+- Orbit from overview to a landmark.
+- Select an active building.
+- Select a dormant building.
+- Search for a repository.
+- Inspect dependencies.
+- Switch to 2D and back to 3D.
+- Test an account with very few repositories.
+- Test reduced-effects or Performance mode.
+- Test the experience at a narrow viewport.
+- Look for clipping, unreadable labels, excessive visual noise, awkward camera moves, broken focus states, and dead controls.
+- Fix problems instead of merely documenting them.
 
 ## Final Instruction
 
-Build GitWorld as an inhabitable software universe.
+Make the 3D city feel like a physical memory palace for a developer’s work.
 
-The avatar should feel like the user. The town should feel spacious and navigable. The paths should create curiosity. Repository buildings should communicate scale and importance. Repository interiors should reveal the actual architecture of the code. Public roads should lead to other developers’ worlds. The river should create a meaningful edge. The construction site should make new work feel tangible.
+The user should not merely inspect metrics. They should recognize their history in the architecture:
 
-**Do not build a file explorer with a game skin. Build a world whose places explain software, community, and creation.**
+- The project they are proud of is a landmark.
+- The abandoned side project is still standing quietly in a distant district.
+- The active repository is visibly alive.
+- The dependency graph is a network of roads.
+- The entire city feels uniquely theirs.
+
+**Do not make a 3D dashboard. Make GitHub inhabitable.**
+
+---
+
+## Reference
+
+[1]: file:///home/ubuntu/gitworld-claude-build-prompt.md "GitWorld Version 1 Claude build prompt"
+[2]: file:///home/ubuntu/upload/gitworld-manus-prompt.md "Original GitWorld product brief supplied by the user"

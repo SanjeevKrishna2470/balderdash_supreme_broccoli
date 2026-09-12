@@ -9,11 +9,22 @@ interface Props {
   legendOpen: boolean;
   onToggleLegend: () => void;
   onOpenSearch: () => void;
+  onOpenCreateRepo?: () => void;
   onLogout?: () => void;
   onEnablePrivate?: () => void;
 }
 
-export function TopBar({ user, source, hoveredName, legendOpen, onToggleLegend, onOpenSearch, onLogout, onEnablePrivate }: Props) {
+export function TopBar({
+  user,
+  source,
+  hoveredName,
+  legendOpen,
+  onToggleLegend,
+  onOpenSearch,
+  onOpenCreateRepo,
+  onLogout,
+  onEnablePrivate,
+}: Props) {
   return (
     <div className="topbar">
       <div className="topbar-row">
@@ -25,6 +36,17 @@ export function TopBar({ user, source, hoveredName, legendOpen, onToggleLegend, 
         {hoveredName && <span className="topbar-hovered">{hoveredName}</span>}
 
         <div className="topbar-actions">
+          {onOpenCreateRepo && (
+            <button
+              className="topbar-btn topbar-btn--create"
+              onClick={onOpenCreateRepo}
+              title="Break ground on a new repository in construction works"
+            >
+              <PlusIcon />
+              <span className="topbar-btn-label">Break ground</span>
+            </button>
+          )}
+
           <button className="topbar-btn" onClick={onOpenSearch} aria-label="Search repositories">
             <SearchIcon />
             <span className="topbar-btn-label">Search</span>
@@ -112,6 +134,14 @@ function LogoutIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
       <path d="M5.5 2.5H3C2.44772 2.5 2 2.94772 2 3.5V11.5C2 12.0523 2.44772 12.5 3 12.5H5.5M10 4.5L13 7.5M13 7.5L10 10.5M13 7.5H5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }

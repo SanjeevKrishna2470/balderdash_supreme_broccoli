@@ -30,6 +30,9 @@ interface WorldStore {
   activeRepo: ActiveRepo | null;
   codeViewer: CodeViewerTarget | null;
 
+  createRepoOpen: boolean;
+  setCreateRepoOpen: (v: boolean) => void;
+
   setScreen: (s: Screen) => void;
   setWorld: (world: CityWorldModel, source: DataSource) => void;
   setError: (message: string) => void;
@@ -53,9 +56,11 @@ export const useWorldStore = create<WorldStore>((set) => ({
   hoveredBuildingId: null,
   searchOpen: false,
   legendOpen: false,
+  createRepoOpen: false,
   activeRepo: null,
   codeViewer: null,
 
+  setCreateRepoOpen: (createRepoOpen) => set({ createRepoOpen }),
   setScreen: (screen) => set({ screen }),
   setWorld: (world, source) => set({ world, source, screen: 'city' }),
   setError: (errorMessage) => set({ errorMessage, screen: 'error' }),
@@ -80,6 +85,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
       errorMessage: null,
       searchOpen: false,
       legendOpen: false,
+      createRepoOpen: false,
     }),
 }));
 

@@ -9,6 +9,7 @@ import { SearchOverlay } from './components/SearchOverlay';
 import { ErrorScreen } from './components/ErrorScreen';
 import { MobileControls } from './components/MobileControls';
 import { CodeViewerModal } from './components/CodeViewerModal';
+import { CreateRepoModal } from './components/CreateRepoModal';
 import { CityCanvas, type CityCanvasHandle } from './render/CityCanvas';
 import { RepoCanvas, type RepoCanvasHandle } from './render/RepoCanvas';
 import { useWorldStore } from './state/useWorldStore';
@@ -34,6 +35,8 @@ export default function App() {
   const setSearchOpen = useWorldStore((s) => s.setSearchOpen);
   const legendOpen = useWorldStore((s) => s.legendOpen);
   const setLegendOpen = useWorldStore((s) => s.setLegendOpen);
+  const createRepoOpen = useWorldStore((s) => s.createRepoOpen);
+  const setCreateRepoOpen = useWorldStore((s) => s.setCreateRepoOpen);
   const enterRepo = useWorldStore((s) => s.enterRepo);
   const exitRepo = useWorldStore((s) => s.exitRepo);
   const codeViewer = useWorldStore((s) => s.codeViewer);
@@ -49,6 +52,19 @@ export default function App() {
 
   const canvasRef = useRef<CityCanvasHandle>(null);
   const repoCanvasRef = useRef<RepoCanvasHandle>(null);
+
+  const handleRepoCreated = useCallback((newRepo: any) => {
+    if (!world) return;
+    const existingRepos = world.buildings.map((b) => b.repo);
+    if (!existingRepos.some((r) => r.id === newRepo.id)) {
+      const updatedCity = buildCity([newRepo, ...existingRepos], world.user);
+      setWorld(updatedCity, source || 'demo');
+      selectBuilding(String(newRepo.id));
+      setTimeout(() => {
+        canvasRef.current?.flyToBuilding(String(newRepo.id));
+      }, 150);
+    }
+  }, [world, source, setWorld, selectBuilding]);
 
   const enterDemo = useCallback(() => {
     setScreen('loading');
@@ -261,6 +277,7 @@ export default function App() {
               onHover={setHoveredId}
               onSelect={(id) => selectBuilding(id)}
               onEnter={enterRepoWorld}
+              onOpenCreateRepo={() => setCreateRepoOpen(true)}
               active={screen === 'city'}
             />
           </div>
@@ -274,6 +291,7 @@ export default function App() {
                 legendOpen={legendOpen}
                 onToggleLegend={() => setLegendOpen(!legendOpen)}
                 onOpenSearch={() => setSearchOpen(true)}
+                onOpenCreateRepo={() => setCreateRepoOpen(true)}
                 onLogout={handleLogout}
                 onEnablePrivate={source === 'live' ? beginPrivateAccess : undefined}
               />
@@ -386,6 +404,13 @@ export default function App() {
 
       {codeViewer && (
         <CodeViewerModal target={codeViewer} onClose={closeCodeViewer} />
+      )}
+
+      {createRepoOpen && (
+        <CreateRepoModal
+          onClose={() => setCreateRepoOpen(false)}
+          onRepoCreated={handleRepoCreated}
+        />
       )}
     </div>
   );
