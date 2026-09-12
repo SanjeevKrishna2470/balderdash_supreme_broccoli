@@ -76,7 +76,11 @@ export async function fetchSession(): Promise<LiveSession | null> {
     credentials: 'include',
     cache: 'no-store',
   });
-  if (reposRes.status === 401) return null; // session expired between the two calls
+  if (reposRes.status === 401) {
+    // Do not keep replaying a revoked/expired GitHub token on every load.
+    setAuthToken(null);
+    return null;
+  }
   if (!reposRes.ok) {
     const body = await reposRes.json().catch(() => null);
     throw new Error(body?.message || `GitHub data request failed (${reposRes.status})`);

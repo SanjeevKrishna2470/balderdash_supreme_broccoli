@@ -24,6 +24,18 @@ reposRouter.get('/', requireAuth, async (req: Request, res: Response) => {
     const normalized = RepositoryNormalizer.normalizeAll(rawRepos);
     return res.json(normalized);
   } catch (error: any) {
+    const githubStatus = error?.response?.status;
+    if (githubStatus === 401) {
+      // The GitHub OAuth token is revoked, expired, or otherwise invalid.
+      // Remove the cookie session so the next frontend attempt cannot keep
+      // replaying the same unusable credential.
+      if (req.session) req.session = null;
+      return res.status(401).json({
+        error: 'GitHub authentication expired',
+        code: 'GITHUB_AUTH_EXPIRED',
+        message: 'Your GitHub authorization is no longer valid. Please sign in with GitHub again.',
+      });
+    }
     return res.status(500).json({ error: 'Failed to fetch repositories', message: error.message });
   }
 });
