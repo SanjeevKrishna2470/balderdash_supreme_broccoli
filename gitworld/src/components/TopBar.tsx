@@ -11,6 +11,7 @@ interface Props {
   onOpenSearch: () => void;
   onOpenCreateRepo?: () => void;
   onLogout?: () => void;
+  onLeaveRealm?: () => void;
   onEnablePrivate?: () => void;
 }
 
@@ -23,6 +24,7 @@ export function TopBar({
   onOpenSearch,
   onOpenCreateRepo,
   onLogout,
+  onLeaveRealm,
   onEnablePrivate,
 }: Props) {
   return (
@@ -31,6 +33,7 @@ export function TopBar({
         <div className="topbar-brand">
           <span className="topbar-wordmark">GitWorld</span>
           {source === 'demo' && <span className="topbar-badge">Demo city</span>}
+          {source === 'public' && <span className="topbar-badge topbar-badge--public">Open source realm</span>}
         </div>
 
         {hoveredName && <span className="topbar-hovered">{hoveredName}</span>}
@@ -77,6 +80,13 @@ export function TopBar({
             <button className="topbar-btn topbar-btn--logout" onClick={onLogout} title="Log out / Leave realm">
               <LogoutIcon />
               <span className="topbar-btn-label">Logout</span>
+            </button>
+          )}
+
+          {onLeaveRealm && (
+            <button className="topbar-btn topbar-btn--logout" onClick={onLeaveRealm} title="Return to the GitWorld entrance">
+              <LogoutIcon />
+              <span className="topbar-btn-label">Leave realm</span>
             </button>
           )}
         </div>

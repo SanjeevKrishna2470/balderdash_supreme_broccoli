@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import './Landing.css';
+import { OpenSourceRealm } from './OpenSourceRealm';
 
 interface Props {
   onEnterDemo: () => void;
@@ -121,6 +122,8 @@ export function Landing({ onEnterDemo, onSignIn, onExploreUsername }: Props) {
           Read-only access. We only look at repository metadata — private repositories are
           included only if you explicitly opt in during sign-in.
         </p>
+
+        {onExploreUsername && <OpenSourceRealm onExplore={onExploreUsername} />}
       </div>
     </div>
   );

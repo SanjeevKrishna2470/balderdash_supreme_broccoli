@@ -2,7 +2,8 @@
   position: relative;
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: radial-gradient(ellipse at 50% 30%, #1c1a37 0%, #141228 55%, #0b0a16 100%);
   display: flex;
   align-items: center;
@@ -49,7 +50,7 @@
   max-width: 620px;
   padding: 0 var(--space-5);
   text-align: center;
-  margin-bottom: 10vh;
+  margin: 7vh auto 10vh;
 }
 
 .landing-eyebrow {

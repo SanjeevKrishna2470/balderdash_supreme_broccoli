@@ -3,7 +3,7 @@ import type { CityWorldModel } from '../world/cityTypes';
 import type { RepoWorldModel } from '../world/repoWorldTypes';
 
 export type Screen = 'landing' | 'loading' | 'city' | 'repo' | 'error';
-export type DataSource = 'live' | 'demo' | null;
+export type DataSource = 'live' | 'public' | 'demo' | null;
 
 export interface ActiveRepo {
   repoWorld: RepoWorldModel;
@@ -88,5 +88,4 @@ export const useWorldStore = create<WorldStore>((set) => ({
       createRepoOpen: false,
     }),
 }));
-
 

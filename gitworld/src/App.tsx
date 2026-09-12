@@ -109,7 +109,7 @@ export default function App() {
           avatarUrl: session.avatarUrl,
           htmlUrl: session.htmlUrl,
         });
-        setWorld(city, 'live');
+        setWorld(city, 'public');
       } catch (err) {
         setError(err instanceof Error ? err.message : `Could not load GitHub user "${username}".`);
       }
@@ -291,8 +291,9 @@ export default function App() {
                 legendOpen={legendOpen}
                 onToggleLegend={() => setLegendOpen(!legendOpen)}
                 onOpenSearch={() => setSearchOpen(true)}
-                onOpenCreateRepo={() => setCreateRepoOpen(true)}
-                onLogout={handleLogout}
+                onOpenCreateRepo={source === 'public' ? undefined : () => setCreateRepoOpen(true)}
+                onLogout={source === 'live' ? handleLogout : undefined}
+                onLeaveRealm={source === 'public' ? () => useWorldStore.getState().logout() : undefined}
                 onEnablePrivate={source === 'live' ? beginPrivateAccess : undefined}
               />
 
