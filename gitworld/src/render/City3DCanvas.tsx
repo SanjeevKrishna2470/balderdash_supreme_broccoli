@@ -669,7 +669,7 @@ export const City3DCanvas = forwardRef<City3DCanvasHandle, Props>(function City3
       if (perspectiveRef.current === 'first_person') {
         // Minecraft-style First Person Camera:
         // Position at eye level (1.65m) with subtle walking head bobbing
-        const isMoving = nextPlayerState.isMoving;
+        const isMoving = nextPlayerState.movementState === 'walking';
         const bobFrequency = 9.0;
         const bobAmountY = isMoving ? Math.sin(time * bobFrequency) * 0.045 : 0;
         const bobAmountX = isMoving ? Math.cos(time * bobFrequency * 0.5) * 0.025 : 0;

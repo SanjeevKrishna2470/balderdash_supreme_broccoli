@@ -108,6 +108,7 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
   const nearStorefrontRef = useRef<TrendingStorefrontBuilding | null>(null);
   const hoveredStorefrontRef = useRef<TrendingStorefrontBuilding | null>(null);
   const lastSnapshotSendTimeRef = useRef<number>(0);
+  const inputSequenceRef = useRef<number>(0);
 
   // World extension state refs (AGENT.md Sections 7, 8, 9)
   const boatRef = useRef(world.boat ? { ...world.boat } : null);
@@ -591,9 +592,11 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
       // Broadcast Player Snapshot to Multiplayer Store / Server (throttled ~15Hz / 66ms)
       if (ts - lastSnapshotSendTimeRef.current > 66) {
         lastSnapshotSendTimeRef.current = ts;
+        inputSequenceRef.current += 1;
         const mpStore = useMultiplayerStore.getState();
         if (mpStore.connectionState === 'connected') {
           mpStore.sendSnapshot({
+            inputSequence: inputSequenceRef.current,
             position: { x: playerRef.current.x, y: playerRef.current.y },
             velocity: isMoving ? { x: (dx / (Math.hypot(dx, dy) || 1)) * PLAYER_SPEED, y: (dy / (Math.hypot(dx, dy) || 1)) * PLAYER_SPEED } : { x: 0, y: 0 },
             facing: facingRef.current,
@@ -626,6 +629,13 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
       const { vw, vh, dpr } = sizeRef.current;
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Viewport culling helper
+      const margin = VIEW_MARGIN;
+      const visible = (wx: number, wy: number) => {
+        const p = worldToScreen(cam, vw, vh, wx, wy);
+        return p.x > -margin && p.x < vw + margin && p.y > -margin && p.y < vh + margin;
+      };
 
       drawBackground(ctx, vw, vh);
       drawGround(ctx, cam, vw, vh, world.bounds);
@@ -701,20 +711,18 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         // Draw Trending Storefronts
         for (const sf of world.trendingStreet.storefronts) {
           if (!visible(sf.x, sf.y)) continue;
-          drawTrendingStorefront(ctx, cam, vw, vh, sf, {
-            isHovered: hoveredStorefrontRef.current?.id === sf.id || nearStorefrontRef.current?.id === sf.id,
-            isSelected: false,
-            timeMs: ts,
-          });
+          drawTrendingStorefront(
+            ctx,
+            cam,
+            vw,
+            vh,
+            sf,
+            hoveredStorefrontRef.current?.id === sf.id || nearStorefrontRef.current?.id === sf.id,
+            false,
+            ts
+          );
         }
       }
-
-      // Viewport culling
-      const margin = VIEW_MARGIN;
-      const visible = (wx: number, wy: number) => {
-        const p = worldToScreen(cam, vw, vh, wx, wy);
-        return p.x > -margin && p.x < vw + margin && p.y > -margin && p.y < vh + margin;
-      };
 
       const sortedBuildings = world.buildings
         .filter((b) => visible(b.x, b.y))
@@ -763,18 +771,25 @@ export const CityCanvas = forwardRef<CityCanvasHandle, Props>(function CityCanva
         // Find recent proximity chat for this player (< 4.5s ago)
         const recentChat = mpState.chatMessages
           .filter((m) => m.senderId === odId && nowMs - m.sentAt < 4500)
-          .slice(-1)[0]?.text ?? null;
+          .slice(-1)[0] ?? null;
 
         drawRemotePlayerAvatar(
           ctx,
           cam,
           vw,
           vh,
-          remotePlayer,
-          interpolated,
-          activeEmote?.emoteId ?? null,
-          recentChat,
-          ts
+          {
+            id: remotePlayer.id,
+            username: remotePlayer.username,
+            displayName: remotePlayer.displayName,
+            profileColorSeed: remotePlayer.profileColorSeed,
+            position: interpolated.position,
+            facing: interpolated.facing,
+            isWalking: interpolated.isWalking,
+            walkPhase: interpolated.walkPhase,
+          },
+          activeEmote ? { emoteId: activeEmote.emoteId, startedAt: activeEmote.startedAt } : null,
+          recentChat ? { text: recentChat.text, sentAt: recentChat.sentAt } : null
         );
       });
 
