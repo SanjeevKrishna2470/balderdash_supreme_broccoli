@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CityWorldModel } from '../world/cityTypes';
+import type { CityWorldModel, ViewMode, QualityPreset, CameraMode } from '../world/cityTypes';
 import type { RepoWorldModel } from '../world/repoWorldTypes';
 
 export type Screen = 'landing' | 'loading' | 'city' | 'repo' | 'error';
@@ -33,6 +33,21 @@ interface WorldStore {
   createRepoOpen: boolean;
   setCreateRepoOpen: (v: boolean) => void;
 
+  // 3D and Display settings
+  viewMode: ViewMode;
+  qualityPreset: QualityPreset;
+  cameraMode: CameraMode;
+  reducedMotion: boolean;
+  reducedEffects: boolean;
+  settingsOpen: boolean;
+
+  setViewMode: (v: ViewMode) => void;
+  setQualityPreset: (q: QualityPreset) => void;
+  setCameraMode: (c: CameraMode) => void;
+  setReducedMotion: (v: boolean) => void;
+  setReducedEffects: (v: boolean) => void;
+  setSettingsOpen: (v: boolean) => void;
+
   setScreen: (s: Screen) => void;
   setWorld: (world: CityWorldModel, source: DataSource) => void;
   setError: (message: string) => void;
@@ -60,6 +75,20 @@ export const useWorldStore = create<WorldStore>((set) => ({
   activeRepo: null,
   codeViewer: null,
 
+  viewMode: '3d',
+  qualityPreset: 'balanced',
+  cameraMode: 'orbit',
+  reducedMotion: false,
+  reducedEffects: false,
+  settingsOpen: false,
+
+  setViewMode: (viewMode) => set({ viewMode }),
+  setQualityPreset: (qualityPreset) => set({ qualityPreset }),
+  setCameraMode: (cameraMode) => set({ cameraMode }),
+  setReducedMotion: (reducedMotion) => set({ reducedMotion }),
+  setReducedEffects: (reducedEffects) => set({ reducedEffects }),
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+
   setCreateRepoOpen: (createRepoOpen) => set({ createRepoOpen }),
   setScreen: (screen) => set({ screen }),
   setWorld: (world, source) => set({ world, source, screen: 'city' }),
@@ -86,6 +115,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
       searchOpen: false,
       legendOpen: false,
       createRepoOpen: false,
+      settingsOpen: false,
     }),
 }));
 

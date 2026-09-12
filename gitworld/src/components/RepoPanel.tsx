@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { CityBuilding } from '../world/cityTypes';
 import './RepoPanel.css';
 
@@ -9,10 +9,9 @@ interface Props {
   onBrowseCode?: (building: CityBuilding) => void;
 }
 
-
 const ACTIVITY_LABEL: Record<string, string> = {
-  active: 'Active — pushed within the last month',
-  quiet: 'Quiet — pushed within the last six months',
+  active: 'Active — pushed within the last 30 days',
+  quiet: 'Quiet — pushed within the last 6 months',
   dormant: 'Dormant — untouched for a while',
 };
 
@@ -26,6 +25,8 @@ function timeAgo(iso: string): string {
 }
 
 export function RepoPanel({ building, onClose, onEnter, onBrowseCode }: Props) {
+  const [showProfile, setShowProfile] = useState(false);
+
   useEffect(() => {
     if (!building) return;
     const onKey = (e: KeyboardEvent) => {
@@ -38,6 +39,7 @@ export function RepoPanel({ building, onClose, onEnter, onBrowseCode }: Props) {
   if (!building) return null;
   const repo = building.repo;
   const owner = repo.fullName.split('/')[0];
+  const profile = building.visualProfile;
 
   return (
     <>
@@ -47,6 +49,7 @@ export function RepoPanel({ building, onClose, onEnter, onBrowseCode }: Props) {
           <CloseIcon />
         </button>
 
+        {/* 1. Repository identity and plain-language activity state */}
         <div className="repopanel-header" style={{ background: building.style.primary }}>
           <span className="repopanel-owner">{owner}</span>
           <h2 className="repopanel-name">{repo.name}</h2>
@@ -57,17 +60,64 @@ export function RepoPanel({ building, onClose, onEnter, onBrowseCode }: Props) {
         </div>
 
         <div className="repopanel-body">
+          {/* 2. Description and project type */}
           {repo.description && <p className="repopanel-desc">{repo.description}</p>}
 
           <div className="repopanel-meta">
             <span className="repopanel-lang">
               <span className="repopanel-lang-dot" style={{ background: building.style.primary }} />
-              {repo.primaryLanguage}
+              {repo.primaryLanguage || 'Unknown'}
             </span>
+            {profile && (
+              <>
+                <span className="repopanel-sep">&middot;</span>
+                <span className="repopanel-type-badge">{profile.projectType}</span>
+              </>
+            )}
             <span className="repopanel-sep">&middot;</span>
             <span>Last activity {timeAgo(repo.lastPushedAt)}</span>
           </div>
 
+          {/* 3. Visual summary / Traceable building profile inspector */}
+          {profile && (
+            <div className="repopanel-visual-profile">
+              <button
+                type="button"
+                className="repopanel-profile-toggle"
+                onClick={() => setShowProfile(!showProfile)}
+                aria-expanded={showProfile}
+              >
+                <span>Why does this building look this way?</span>
+                <span className={`repopanel-profile-chevron ${showProfile ? 'open' : ''}`}>▼</span>
+              </button>
+
+              {showProfile && (
+                <div className="repopanel-profile-content">
+                  <div className="repopanel-profile-row">
+                    <span className="repopanel-profile-label">Architectural Tier</span>
+                    <span className="repopanel-profile-val">{profile.tier.toUpperCase()} ({profile.tierReason})</span>
+                  </div>
+                  <div className="repopanel-profile-row">
+                    <span className="repopanel-profile-label">Roof &amp; Motif</span>
+                    <span className="repopanel-profile-val">{profile.architecturalMotif} crown &bull; {profile.massingGrammar.replace('_', ' ')}</span>
+                  </div>
+                  <div className="repopanel-profile-row">
+                    <span className="repopanel-profile-label">Ecological Aging</span>
+                    <span className="repopanel-profile-val">{profile.ecologicalAgeDescription}</span>
+                  </div>
+                  {profile.signalsSummary && profile.signalsSummary.length > 0 && (
+                    <ul className="repopanel-profile-signals">
+                      {profile.signalsSummary.map((sig, idx) => (
+                        <li key={idx}>{sig}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. Essential facts: stars, forks, contributors, issues, PRs */}
           <div className="repopanel-stats">
             <Stat label="Stars" value={repo.stars} />
             <Stat label="Forks" value={repo.forks} />
@@ -92,6 +142,7 @@ export function RepoPanel({ building, onClose, onEnter, onBrowseCode }: Props) {
             </p>
           )}
 
+          {/* 5. Clear primary action & secondary actions */}
           <button className="repopanel-cta" onClick={() => onEnter(building)}>
             Explore repository interior
             <EnterIcon />
@@ -99,7 +150,7 @@ export function RepoPanel({ building, onClose, onEnter, onBrowseCode }: Props) {
 
           {onBrowseCode && (
             <button className="repopanel-cta repopanel-cta--secondary" onClick={() => onBrowseCode(building)}>
-              Browse & View Code
+              Browse &amp; View Code
               <CodeIcon />
             </button>
           )}
@@ -154,4 +205,3 @@ function CodeIcon() {
     </svg>
   );
 }
-

@@ -2,6 +2,7 @@ import type { RepositoryModel } from '../types';
 import { seededRandom, randRange, randInt, hashSeed } from './rng';
 import { getLanguageStyle } from './languageStyles';
 import { computeImportance } from './importance';
+import { generateBuildingVisualProfile } from './visualProfile';
 import type {
   CityWorldModel,
   District,
@@ -249,6 +250,22 @@ export function buildCity(
             })
           : [];
 
+      const issuesShown = Math.min(6, repo.openIssues || 0);
+      const hasConstruction =
+        repo.openPullRequests !== undefined
+          ? repo.openPullRequests > 0
+          : activity !== 'dormant' && bRand() < 0.22;
+
+      const visualProfile = generateBuildingVisualProfile(
+        repo,
+        importance,
+        activity,
+        style,
+        issuesShown,
+        hasConstruction,
+        contributorCount
+      );
+
       const building: CityBuilding = {
         id: String(repo.id),
         repo,
@@ -260,15 +277,13 @@ export function buildCity(
         heightPx: importance.heightPx,
         activity,
         style,
-        issuesShown: Math.min(6, repo.openIssues || 0),
-        hasConstruction:
-          repo.openPullRequests !== undefined
-            ? repo.openPullRequests > 0
-            : activity !== 'dormant' && bRand() < 0.22,
+        issuesShown,
+        hasConstruction,
         satellites,
         contributorCount,
         plotEntrance,
         importanceScore: importance.score,
+        visualProfile,
       };
       buildings.push(building);
 

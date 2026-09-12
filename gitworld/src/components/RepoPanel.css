@@ -241,6 +241,104 @@
   border-color: rgba(89, 173, 162, 0.5);
 }
 
+.repopanel-type-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.repopanel-visual-profile {
+  background: rgba(14, 13, 24, 0.45);
+  border: 1px solid rgba(167, 163, 196, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 4px 0 8px;
+}
+
+.repopanel-profile-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.repopanel-profile-toggle:hover {
+  color: #38bdf8;
+}
+
+.repopanel-profile-chevron {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.repopanel-profile-chevron.open {
+  transform: rotate(180deg);
+}
+
+.repopanel-profile-content {
+  padding: 10px 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  background: rgba(10, 10, 18, 0.3);
+}
+
+.repopanel-profile-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.repopanel-profile-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.repopanel-profile-val {
+  color: #f1ead9;
+  line-height: 1.35;
+}
+
+.repopanel-profile-signals {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  color: #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.35;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 640px) {
   .repopanel {
     top: auto;
@@ -252,16 +350,5 @@
     border-top: 1px solid rgba(167, 163, 196, 0.14);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     animation: sheet-in var(--dur-med) var(--ease-panel);
-  }
-
-  @keyframes sheet-in {
-    from {
-      opacity: 0;
-      transform: translateY(24px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }

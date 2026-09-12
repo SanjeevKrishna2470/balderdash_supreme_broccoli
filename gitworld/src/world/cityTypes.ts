@@ -39,6 +39,12 @@ export interface ContributorAvatar {
   hue: string;
 }
 
+import type { BuildingVisualProfile } from './visualProfile';
+
+export type ViewMode = '3d' | '2d';
+export type QualityPreset = 'high' | 'balanced' | 'performance';
+export type CameraMode = 'orbit' | 'walk';
+
 export interface CityBuilding {
   id: string;
   repo: RepositoryModel;
@@ -56,6 +62,7 @@ export interface CityBuilding {
   contributorCount: number;
   plotEntrance?: { x: number; y: number };
   importanceScore?: number;
+  visualProfile?: BuildingVisualProfile;
 }
 
 export interface Road {

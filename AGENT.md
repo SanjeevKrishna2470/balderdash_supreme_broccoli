@@ -1,5 +1,13 @@
 # Claude Build Prompt — GitWorld 3D
 
+## Version 2.1 Refinement Pass
+
+This is a refinement and fidelity pass on the GitWorld 3D experience. Preserve the existing product scope and architecture, but raise the bar for visual polish, UI restraint, ecological storytelling, and repository-to-building accuracy. The result must feel cohesive rather than feature-stacked.
+
+The most important rule for this pass is:
+
+> **Every visible detail must either help the user navigate, explain the repository, or make the world feel alive. Nothing should feel randomly decorated or clumsily overlaid.**
+
 ## Version 2 Product Upgrade
 
 You are a senior product designer, 3D creative technologist, and full-stack engineer. You are extending **GitWorld**, an application that transforms a user’s GitHub account into an explorable city, into a polished **3D architectural world**.
@@ -360,6 +368,121 @@ Agents should:
 
 Do not spend the MVP on detailed humanoid characters. The metaphor matters more than character fidelity.
 
+
+## Repository Fidelity and Ecological Aging
+
+A building must look like the repository it represents, not like a generic procedural asset with a repository name attached.
+
+### Traceable Building Generation
+
+Create an explicit `BuildingVisualProfile` during normalization or world generation. It should record the data inputs responsible for the building’s visible properties.
+
+At minimum, track:
+
+- Repository ID and stable seed.
+- Building tier and size inputs.
+- Dominant and secondary languages.
+- Detected project type.
+- Code-category composition.
+- Activity state and last meaningful commit date.
+- Stars, forks, contributor count, and issue/PR state.
+- Directory and file complexity.
+- Whether tests, documentation, infrastructure, or assets were detected.
+- Selected architectural style and its reason codes.
+- Selected condition and ecological-aging level.
+
+A developer should be able to inspect a debug view and answer: “Why does this building look this way?” Do not let visual properties emerge from arbitrary random choices.
+
+### Repository-to-Architecture Rules
+
+The building must express multiple repository signals at once without becoming visually noisy:
+
+- Stars influence civic prominence, facade quality, and landmark treatment.
+- Repository size and file complexity influence mass, footprint, and number of wings or annexes.
+- Contributor count influences visible occupancy, entrances, and nearby people.
+- Dominant language controls the architectural vocabulary and palette.
+- Secondary languages appear as restrained accent materials or secondary wings.
+- Project type influences the building’s functional silhouette.
+- Frontend-heavy projects may have public-facing facades and display surfaces.
+- Backend or API-heavy projects may have service wings, utility structures, or connected infrastructure.
+- Data-heavy projects may have archives, towers, or storage volumes.
+- Tests create laboratories or inspection spaces.
+- Documentation creates a library, visitor center, or public information wing.
+- Infrastructure and deployment create utility links, towers, or launch structures.
+- Open pull requests create construction overlays.
+- Open issues create localized repair or warning details.
+- Forks create satellite structures only for capped high-signal repositories.
+- Dependencies create paths, roads, pipes, or bridges to related projects.
+
+No single signal should completely define the building. The goal is a coherent architectural composition whose details reinforce one another.
+
+### Building Personality and Variation
+
+Use deterministic variation within a constrained style family:
+
+- Choose from a small set of related massing grammars.
+- Vary roofline, entrance, window rhythm, setbacks, courtyards, and annexes by seed.
+- Use materials and props to communicate data rather than adding random ornament.
+- Keep enough negative space around the building to make its silhouette legible.
+- Ensure a user can recognize a repository after revisiting it.
+
+The building must retain its identity when its activity changes. Activity can alter lighting, occupancy, and condition, but should not randomly rebuild the core architecture.
+
+### Ecological Aging System
+
+Long-dormant repositories should gradually become old, quiet places with natural overgrowth. Use time since the most recent meaningful commit as a primary signal, while also considering repository age and activity history.
+
+Suggested states:
+
+| Time since meaningful activity | Environmental state | Visual treatment |
+|---|---|---|
+| 0–30 days | Active | Maintained paths, lit windows, active entrances, small groups of contributors, clean grounds |
+| 30–180 days | Quiet | Partial lighting, fewer people, calm grounds, light maintenance variation |
+| 180–365 days | Aging | Cooler materials, dim entrances, small grass patches, early vines, a few leaves or weeds near edges |
+| 1–3 years | Overgrown | Noticeable grass, shrubs, young trees, vines on selected walls, cracked or softened paths, more closed windows |
+| 3+ years | Old building | Mature trees, dense grass, ivy or vines, weathered facade, moss-like ground accents, broken or blocked paths, almost no activity |
+
+These thresholds should be configurable and based on real timestamps. Do not label a repository “abandoned” unless the UI can explain the underlying inactivity. Use “dormant” or “quiet” for the product language.
+
+### Overgrowth Rules
+
+Overgrowth must be spatially believable and performance-conscious:
+
+- Place grass and weeds around plot edges, cracks, path borders, and unused corners.
+- Place shrubs near foundations and behind low walls.
+- Place trees in larger plots and farther from entrances, not randomly in front of doors.
+- Use vines selectively on older facade surfaces.
+- Keep the primary building silhouette visible.
+- Allow paths to become slightly narrower or visually softened, but never make the building unreachable.
+- Use seeded placement so the same old repository grows in the same way on reload.
+- Scale density with available plot space, age, and condition rather than with random noise.
+- Use instancing or shared geometry for grass, shrubs, and trees.
+- Reduce environmental detail at distance through level of detail.
+
+Do not turn every dormant repository into a dramatic ruin. A small project should become a modest old house or workshop; a major project should remain a recognizable landmark with an aged campus or overgrown grounds.
+
+### Seasonal and Respectful Decay
+
+The tone should be reflective, not punitive. The world is showing project history, not judging the developer.
+
+Avoid:
+
+- Cartoon cobwebs everywhere.
+- Fire, collapse, or destruction without real data.
+- Extreme ruin states for repositories that are merely paused.
+- Vegetation that obscures repository identity.
+- Decay that implies deletion, failure, or security problems.
+
+Allow activity to restore the environment gradually:
+
+- New commits can turn on windows.
+- Maintained paths can become clearer over time.
+- Grass and vines can recede subtly.
+- Contributors can return.
+- Construction can appear near active changes.
+
+Activity changes should animate gently, but the core building identity and location must remain stable.
+
 ---
 
 ## Districts, Terrain, and Roads
@@ -558,6 +681,122 @@ Use a consistent UI system:
 - Clear disabled and loading states.
 
 Avoid putting a card around every piece of information. Let the world carry the visual meaning.
+
+
+## UI Refinement: Calm, Layered, and Never Clunky
+
+The city is the primary interface. The UI must feel like a carefully designed instrument for exploring the world, not a collection of controls placed on top of a canvas.
+
+### UI Hierarchy
+
+Organize interface elements into three layers:
+
+1. **Orientation layer** — persistent but quiet controls such as search, user identity, 2D/3D mode, and reset view.
+2. **Context layer** — temporary labels, hover hints, path prompts, and selection indicators that appear only when relevant.
+3. **Inspection layer** — the repository detail panel, settings, errors, and focused workflows that appear when the user asks for them.
+
+Never show all three layers at full intensity simultaneously. When an inspection panel opens, reduce the visual intensity of unrelated controls and background effects.
+
+### Composition Rules
+
+Use a consistent layout grid and safe zones:
+
+- Keep persistent controls inside one compact top bar or one compact side rail, not scattered around the viewport.
+- Reserve one predictable area for transient notices and prompts.
+- Keep the repository panel anchored consistently on desktop and use a bottom sheet on narrow screens.
+- Do not place controls over the player avatar, building entrances, or important landmarks.
+- Maintain generous spacing between controls; do not compress unrelated actions into tiny icon buttons.
+- Use one primary action per surface. Secondary actions should be visually quieter.
+- Keep the number of persistent controls low enough that the city remains visible.
+- Align labels, buttons, and panel sections to a shared spacing system.
+
+### Visual Language
+
+Define design tokens before building the full UI:
+
+- One type scale with clear display, heading, body, metadata, and caption levels.
+- A small spacing scale.
+- A restrained radius scale.
+- A small elevation and shadow system.
+- A clear border and divider treatment.
+- One primary accent, one selection accent, one warning accent, and one success accent.
+- Consistent motion durations and easing curves.
+
+Do not give every component its own gradient, border radius, shadow, or accent color. Repetition is what makes the interface feel like one product.
+
+### Labels and Tooltips
+
+Use progressive disclosure instead of permanent labels:
+
+- At far zoom, show only district names, landmarks, and selected destinations.
+- At mid zoom, reveal a repository name only on hover, proximity, or selection.
+- At close zoom, show meaningful building and area labels with enough contrast to read.
+- Hide labels that would overlap or compete with one another.
+- Prefer one concise label over several badges.
+- Use tooltips only for unfamiliar controls, never as a substitute for clear button design.
+
+Labels should sit in a stable screen-space treatment rather than jittering with every camera movement. They must remain readable against the scene and disappear gracefully when no longer useful.
+
+### Repository Panel Refinement
+
+The repository panel should be a single focused inspection surface, not a stack of cards.
+
+Use this order:
+
+1. Repository identity and activity state.
+2. Description and project type.
+3. One visual summary of the building’s meaning.
+4. Essential facts such as stars, forks, contributors, issues, pull requests, language mix, and last activity.
+5. Clear primary action: Open on GitHub or Enter repository.
+6. Quiet secondary actions and close behavior.
+
+Use grouping, whitespace, and typography instead of excessive borders. The panel should be scannable in three seconds and explorable for thirty seconds.
+
+When the panel opens:
+
+- Dim the world gently rather than hiding it.
+- Reduce ambient motion slightly, but do not freeze the entire city unless needed.
+- Keep the selected building visible whenever possible.
+- Move the camera to a comfortable inspection angle before or during panel entry.
+- Avoid abrupt width changes, layout shifts, or stacked animations.
+
+### Interaction Feedback
+
+Every action needs one clear response:
+
+- Hover changes the building and shows one concise label.
+- Selection changes the building, camera framing, and panel state together.
+- Search shows an active result and a clear travel destination.
+- Loading shows the world assembling.
+- Errors preserve context and offer recovery.
+- Disabled actions explain why they are unavailable.
+- Focus states are visible but stylistically integrated.
+
+Avoid simultaneous pulses, glows, bouncing labels, camera motion, and panel animation. Choose one primary motion cue and keep the rest restrained.
+
+### Motion and Anti-Clunk Rules
+
+Use motion to communicate causality, not to decorate every state.
+
+- Use one coherent transition when entering a repository.
+- Avoid repeated camera re-centering when the user is already looking at a selected building.
+- Do not animate panels from multiple directions at once.
+- Keep hover effects subtle and reversible.
+- Avoid screen shake, excessive parallax, and constant particle motion.
+- Respect reduced-motion preferences by replacing travel animations with short fades or direct focus changes.
+- Ensure a user can dismiss or reverse every temporary UI state.
+
+### Responsive UI
+
+On smaller screens, keep the same hierarchy rather than shrinking the desktop interface:
+
+- Convert the repository panel into a bottom sheet.
+- Move persistent controls into a compact, reachable toolbar.
+- Use a single expandable control cluster instead of many floating buttons.
+- Increase touch targets while reducing visual density.
+- Keep the selected building or avatar visible behind the sheet when possible.
+
+Before completion, inspect the app at common laptop, tablet, and narrow mobile widths. Fix overlap and awkward wrapping rather than accepting automatic browser layout.
 
 ---
 
@@ -780,6 +1019,14 @@ The build is successful only if:
 - Sparse accounts still produce a deliberate, attractive neighborhood.
 - Loading, error, empty, and rate-limit states are designed and recoverable.
 - No generic dashboard takes over the product.
+- The UI has a clear hierarchy, consistent spacing, restrained labels, and no overlapping controls.
+- The interface remains readable and uncluttered while the repository panel is open.
+- Motion is coordinated, reversible, and reduced when the user enables reduced motion.
+- Every major building has a traceable visual profile derived from real repository data.
+- A developer can explain why a selected building has its size, style, activity, and condition.
+- Repositories untouched for years visibly develop grass, shrubs, trees, vines, moss-like ground accents, and weathering in proportion to age and available space.
+- Overgrowth is deterministic, does not hide entrances, and does not overwhelm the building’s identity.
+- Active work can gradually restore lighting, paths, and environmental maintenance.
 - The final experience creates the reaction: **“I’ve never seen my GitHub like this before.”**
 
 ---
@@ -792,12 +1039,13 @@ Produce:
 2. A local setup guide with required environment variables.
 3. A demo mode that works without GitHub credentials.
 4. A concise explanation of the 3D rendering and world-generation architecture.
-5. A description of the building-generation rules and language style system.
-6. A performance strategy explaining instancing, culling, level of detail, and quality presets.
-7. A list of known limitations.
-8. A prioritized roadmap for interiors, time-of-day, analytics mode, achievements, sharing, multiplayer, and real-time event streaming.
-9. A two-minute judge’s walkthrough.
-10. A short explanation of the design choices that make Version 2 feel like an evolution of GitWorld rather than a separate 3D demo.
+5. A description of the building-generation rules, repository-fidelity profile, language style system, and ecological-aging rules.
+6. A UI refinement summary covering hierarchy, spacing, responsive behavior, motion, labels, and anti-clunk decisions.
+7. A performance strategy explaining instancing, culling, level of detail, and quality presets.
+8. A list of known limitations.
+9. A prioritized roadmap for interiors, time-of-day, analytics mode, achievements, sharing, multiplayer, and real-time event streaming.
+10. A two-minute judge’s walkthrough.
+11. A short explanation of the design choices that make Version 2 feel like an evolution of GitWorld rather than a separate 3D demo.
 
 Before declaring completion, evaluate the product like a hackathon judge:
 
@@ -813,7 +1061,9 @@ Before declaring completion, evaluate the product like a hackathon judge:
 - Test an account with very few repositories.
 - Test reduced-effects or Performance mode.
 - Test the experience at a narrow viewport.
-- Look for clipping, unreadable labels, excessive visual noise, awkward camera moves, broken focus states, and dead controls.
+- Look for clipping, unreadable labels, excessive visual noise, awkward camera moves, broken focus states, dead controls, overlapping UI, inconsistent spacing, and labels that obscure buildings.
+- Compare at least one active repository, one quiet repository, and one repository untouched for multiple years. Verify that the ecological aging is visible, tasteful, deterministic, and rooted in timestamps.
+- Open a building debug or explanation view and verify that its visible features can be traced to real normalized repository signals.
 - Fix problems instead of merely documenting them.
 
 ## Final Instruction
@@ -823,12 +1073,12 @@ Make the 3D city feel like a physical memory palace for a developer’s work.
 The user should not merely inspect metrics. They should recognize their history in the architecture:
 
 - The project they are proud of is a landmark.
-- The abandoned side project is still standing quietly in a distant district.
+- The abandoned side project is still standing quietly in a distant district, with grass, trees, and slow natural overgrowth reclaiming its grounds.
 - The active repository is visibly alive.
 - The dependency graph is a network of roads.
 - The entire city feels uniquely theirs.
 
-**Do not make a 3D dashboard. Make GitHub inhabitable.**
+**Do not make a 3D dashboard. Make GitHub inhabitable, visually calm, ecologically alive, and faithful to the repositories it represents.**
 
 ---
 

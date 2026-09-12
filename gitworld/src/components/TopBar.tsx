@@ -1,5 +1,5 @@
 import type { CityWorldModel } from '../world/cityTypes';
-import type { DataSource } from '../state/useWorldStore';
+import { useWorldStore, type DataSource } from '../state/useWorldStore';
 import './TopBar.css';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   onToggleLegend: () => void;
   onOpenSearch: () => void;
   onOpenCreateRepo?: () => void;
+  onResetOverview?: () => void;
   onLogout?: () => void;
   onLeaveRealm?: () => void;
   onEnablePrivate?: () => void;
@@ -23,10 +24,15 @@ export function TopBar({
   onToggleLegend,
   onOpenSearch,
   onOpenCreateRepo,
+  onResetOverview,
   onLogout,
   onLeaveRealm,
   onEnablePrivate,
 }: Props) {
+  const viewMode = useWorldStore((s) => s.viewMode);
+  const setViewMode = useWorldStore((s) => s.setViewMode);
+  const setSettingsOpen = useWorldStore((s) => s.setSettingsOpen);
+
   return (
     <div className="topbar">
       <div className="topbar-row">
@@ -34,11 +40,48 @@ export function TopBar({
           <span className="topbar-wordmark">GitWorld</span>
           {source === 'demo' && <span className="topbar-badge">Demo city</span>}
           {source === 'public' && <span className="topbar-badge topbar-badge--public">Open source realm</span>}
+
+          {/* 3D / 2D Mode Switcher */}
+          <div className="topbar-mode-switch" role="group" aria-label="City View Mode">
+            <button
+              className={`topbar-mode-btn ${viewMode === '3d' ? 'active' : ''}`}
+              onClick={() => setViewMode('3d')}
+              title="Explore in living 3D"
+            >
+              3D
+            </button>
+            <button
+              className={`topbar-mode-btn ${viewMode === '2d' ? 'active' : ''}`}
+              onClick={() => setViewMode('2d')}
+              title="Switch to 2D tactical map"
+            >
+              2D
+            </button>
+          </div>
         </div>
 
         {hoveredName && <span className="topbar-hovered">{hoveredName}</span>}
 
         <div className="topbar-actions">
+          {onResetOverview && (
+            <button
+              className="topbar-btn"
+              onClick={onResetOverview}
+              title="Reset camera to high city overview"
+            >
+              <OverviewIcon />
+              <span className="topbar-btn-label">Overview</span>
+            </button>
+          )}
+
+          <button
+            className="topbar-btn topbar-btn-icon"
+            onClick={() => setSettingsOpen(true)}
+            title="Graphics & View Settings"
+            aria-label="Settings"
+          >
+            <GearIcon />
+          </button>
           {onOpenCreateRepo && (
             <button
               className="topbar-btn topbar-btn--create"
@@ -155,3 +198,28 @@ function PlusIcon() {
     </svg>
   );
 }
+
+function OverviewIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M2 5L8 2L14 5L8 8L2 5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M2 8.5L8 11.5L14 8.5" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M2 12L8 15L14 12" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+

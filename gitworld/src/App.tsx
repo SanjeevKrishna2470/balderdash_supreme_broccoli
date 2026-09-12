@@ -11,6 +11,8 @@ import { MobileControls } from './components/MobileControls';
 import { CodeViewerModal } from './components/CodeViewerModal';
 import { CreateRepoModal } from './components/CreateRepoModal';
 import { CityCanvas, type CityCanvasHandle } from './render/CityCanvas';
+import { City3DCanvas, type City3DCanvasHandle } from './render/City3DCanvas';
+import { SettingsModal } from './components/SettingsModal';
 import { RepoCanvas, type RepoCanvasHandle } from './render/RepoCanvas';
 import { useWorldStore } from './state/useWorldStore';
 import { buildCity } from './world/worldBuilder';
@@ -42,6 +44,12 @@ export default function App() {
   const codeViewer = useWorldStore((s) => s.codeViewer);
   const openCodeViewer = useWorldStore((s) => s.openCodeViewer);
   const closeCodeViewer = useWorldStore((s) => s.closeCodeViewer);
+  const viewMode = useWorldStore((s) => s.viewMode);
+  const setViewMode = useWorldStore((s) => s.setViewMode);
+  const qualityPreset = useWorldStore((s) => s.qualityPreset);
+  const reducedMotion = useWorldStore((s) => s.reducedMotion);
+  const settingsOpen = useWorldStore((s) => s.settingsOpen);
+  const setSettingsOpen = useWorldStore((s) => s.setSettingsOpen);
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [repoHoveredId, setRepoHoveredId] = useState<string | null>(null);
@@ -51,6 +59,7 @@ export default function App() {
   });
 
   const canvasRef = useRef<CityCanvasHandle>(null);
+  const canvas3DRef = useRef<City3DCanvasHandle>(null);
   const repoCanvasRef = useRef<RepoCanvasHandle>(null);
 
   const handleRepoCreated = useCallback((newRepo: any) => {
@@ -241,9 +250,14 @@ export default function App() {
       selectBuilding(id);
       setSearchOpen(false);
       canvasRef.current?.flyToBuilding(id);
+      canvas3DRef.current?.flyToBuilding(id);
     },
     [selectBuilding, setSearchOpen]
   );
+
+  const handleResetOverview = useCallback(() => {
+    canvas3DRef.current?.resetOverview();
+  }, []);
 
   const handleSelectFromRepoSearch = useCallback((id: string) => {
     setRepoSelectedId(id);
@@ -260,14 +274,38 @@ export default function App() {
 
       {(screen === 'city' || screen === 'repo') && world && (
         <div style={{ position: 'relative', height: '100%' }}>
-          {/* City canvas stays mounted across the transition so camera + player position
-              are preserved exactly; it's just paused and visually hidden while in a repo. */}
+          {/* 3D Explore Canvas */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              opacity: screen === 'city' ? 1 : 0,
-              pointerEvents: screen === 'city' ? 'auto' : 'none',
+              opacity: screen === 'city' && viewMode === '3d' ? 1 : 0,
+              pointerEvents: screen === 'city' && viewMode === '3d' ? 'auto' : 'none',
+              zIndex: 1,
+            }}
+          >
+            <City3DCanvas
+              ref={canvas3DRef}
+              world={world}
+              selectedBuildingId={selectedBuildingId}
+              onHover={setHoveredId}
+              onSelect={(id) => selectBuilding(id)}
+              onEnter={enterRepoWorld}
+              active={screen === 'city' && viewMode === '3d'}
+              quality={qualityPreset}
+              reducedMotion={reducedMotion}
+              onWebGLUnavailable={() => setViewMode('2d')}
+            />
+          </div>
+
+          {/* 2D Tactical Map Canvas */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: screen === 'city' && viewMode === '2d' ? 1 : 0,
+              pointerEvents: screen === 'city' && viewMode === '2d' ? 'auto' : 'none',
+              zIndex: 1,
             }}
           >
             <CityCanvas
@@ -278,7 +316,7 @@ export default function App() {
               onSelect={(id) => selectBuilding(id)}
               onEnter={enterRepoWorld}
               onOpenCreateRepo={() => setCreateRepoOpen(true)}
-              active={screen === 'city'}
+              active={screen === 'city' && viewMode === '2d'}
             />
           </div>
 
@@ -292,6 +330,7 @@ export default function App() {
                 onToggleLegend={() => setLegendOpen(!legendOpen)}
                 onOpenSearch={() => setSearchOpen(true)}
                 onOpenCreateRepo={source === 'public' ? undefined : () => setCreateRepoOpen(true)}
+                onResetOverview={handleResetOverview}
                 onLogout={source === 'live' ? handleLogout : undefined}
                 onLeaveRealm={source === 'public' ? () => useWorldStore.getState().logout() : undefined}
                 onEnablePrivate={source === 'live' ? beginPrivateAccess : undefined}
@@ -412,6 +451,10 @@ export default function App() {
           onClose={() => setCreateRepoOpen(false)}
           onRepoCreated={handleRepoCreated}
         />
+      )}
+
+      {settingsOpen && (
+        <SettingsModal onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );

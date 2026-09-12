@@ -6,11 +6,11 @@ interface Props {
 }
 
 const PHRASES = [
-  'Reading repositories',
-  'Laying out districts',
-  'Raising landmark towers',
+  'Preparing your districts',
+  'Constructing repository landmarks',
   'Lighting active projects',
-  'Placing contributors',
+  'Connecting dependencies',
+  'Cultivating ecological surroundings',
 ];
 
 export function Loading({ slow }: Props) {
